@@ -8,4 +8,4 @@
     - About TSA
 2. applicationsOfTsaWtihExs
     - Extension of (1)
-    - Figures as imgs 
+    - Figures as imgs & videos
