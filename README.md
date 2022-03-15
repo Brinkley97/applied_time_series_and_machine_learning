@@ -26,6 +26,9 @@
     4. Sources 
     
 3. dataCharacteristics
+
+    *Shall be updated as I learn & come across new terms*
+
     1. What are some characteristics of x data?
         1. Terminology + Mathematical repesentation
     2. What should I disregard? Keep?
