@@ -33,7 +33,7 @@
         1. Terminology + Mathematical repesentation
     2. What should I disregard? Keep?
     3. What tools (libraries) exist to help analyze the data w/ code?
-    4. Components of TSA
+    4. Patterns/Components of TSA
     5. References
         1. Sources
         2. Further Explore
