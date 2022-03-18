@@ -25,9 +25,9 @@
     3. More Complex Figures
     4. Sources 
     
-3. dataCharacteristics
+3. [dataCharacteristics](https://github.com/Brinkley97/time_series_analysis_basics/blob/main/dataCharacteristics.ipynb)
 
-    *Shall be updated as I learn & come across new terms*
+    *Shall be updated as I learn & come across new material*
 
     1. What are some characteristics of x data?
         1. Terminology + Mathematical repesentation
