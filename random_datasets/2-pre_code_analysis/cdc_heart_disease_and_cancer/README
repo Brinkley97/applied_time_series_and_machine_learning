@@ -1,7 +1,7 @@
 https://www.cdc.gov/nchs/hus/contents2019.htm#Figure-012
 
 About :
-1. This dataset contains rates of both heart disease (HD) and cancer, respectively, from 2008 - 2018 in the United States. There exist two groups which are sex and age. This dataset is generalized to all men and women instead of being specified by race. Both datasets are self-reported with receiving a diagnose from the proper health professional. HD includes diagnoses such as coronary heart disease, itself, angina (angina pectoris), a heart attack (myocardial infarction), or any other kind of heart disease or heart condition. Cancer entails cancer itself, or a malignancy of any kind (excluding squamous cell and basal cell carcinomas).
+This dataset contains rates of both heart disease (HD) and cancer, respectively, from 2008 - 2018 in the United States. There exist two groups which are sex and age. This dataset is generalized to all men and women instead of being specified by race. Both datasets are self-reported with receiving a diagnose from the proper health professional. HD includes diagnoses such as coronary heart disease, itself, angina (angina pectoris), a heart attack (myocardial infarction), or any other kind of heart disease or heart condition. Cancer entails cancer itself, or a malignancy of any kind (excluding squamous cell and basal cell carcinomas).
 
 This sensors of this dataset were provided via questions & diagnoses. Some unknowns are percentage of each race so data could or could not properly reflect the US as a whole but rather specific racial groups.
 
