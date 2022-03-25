@@ -1,11 +1,8 @@
 
 https://archive.ics.uci.edu/ml/datasets/PAMAP2+Physical+Activity+Monitoring
 
-
-
 Per individual (a total of 9), decompose time series by two characteristics. There are (1) activity (some are cycling, driving, running) & (2) duration of activity. Given that information, measure with different sensors the heart rate during that specific duration of time for that specific activity. Unidentified metrics are race, location, etc. Identified are sex, age, resting heart rate, max heart rate, etc.
 
-We would have to manipulate the file type from “.dat” to open with excel. We then would have to clean the data as it would not be properly formatted.
-
+We would have to manipulate the file type from “.dat” to open with excel. We then would have to clean the data as it is not be properly formatted.
 
 This dataset is interesting because it’s personalized as in the measurements are specific to that individual for that duration and that activity. Future predictions of heart rate per individual could be made given previous heart rate time series data and current heart rate.
