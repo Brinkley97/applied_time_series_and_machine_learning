@@ -2,7 +2,7 @@ https://archive.ics.uci.edu/ml/datasets/PPG-DaLiA
 
 
 
-Per individual (a total of 15), decompose time series by two characteristics. There are (1) activity (some are cycling, driving, walking) & (2) duration of activity. Given that information, measure with three different sensors the heart rate during that specific duration of time for that specific activity. The average age is 31, race is unidentified but other characteristics (ie : gender, height, weight, etc) are presented.
+Per individual (a total of 15), decompose the time series-based data by two characteristics. There are (1) activity (some are cycling, driving, walking) & (2) duration of activity. With this information, measure with three different sensors the heart rate during that specific duration of time for that specific activity. The average age is 31, race is unidentified but other characteristics (ie : gender, height, weight, etc) are presented.
 
 The main purpose of the dataset is Photoplethysmography(PPG)-based heart rate estimation. Three sensor modalities are used: a) the PPG-sensor itself, b) 3D-accelerometer embedded in the same device as the PPG-sensor, and c) ECG which provides heart rate ground truth.
 
