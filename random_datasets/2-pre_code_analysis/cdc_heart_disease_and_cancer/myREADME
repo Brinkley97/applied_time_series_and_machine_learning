@@ -1,0 +1,12 @@
+https://www.cdc.gov/nchs/hus/contents2019.htm#Figure-012
+
+About :
+1. This dataset contains rates of both heart disease (HD) and cancer, respectively, from 2008 - 2018 in the United States. There exist two groups which are sex and age. This dataset is generalized to all men and women instead of being specified by race. Both datasets are self-reported with receiving a diagnose from the proper health professional. HD includes diagnoses such as coronary heart disease, itself, angina (angina pectoris), a heart attack (myocardial infarction), or any other kind of heart disease or heart condition. Cancer entails cancer itself, or a malignancy of any kind (excluding squamous cell and basal cell carcinomas).
+
+This sensors of this dataset were provided via questions & diagnoses. Some unknowns are percentage of each race so data could or could not properly reflect the US as a whole but rather specific racial groups.
+
+This interesting due to the fact that HD and cancer are the top two causes of death in the US, accounting for 44.2% of all deaths in 2018 [Health, United States 2019]. HD is more preventable through proper life-style.
+
+With this data and more statistics prior to 2008, we could predict future outcomes. More specifically, a question we could ask is : what might the heart disease and cancer rates be from 2038 - 2048 for both groups and all ages? Given this future prediction, we then could recommend proper mitigation…
+
+As previously stated, this data is broad but I’d like to use time series analysis to discover the in-depths of heart disease (and other chronic illnesses) specifically for rural communities. There exists multiple routes we could explore. Some are (1) comparing rural time series health data to other communities, (2) stay within rural but navigate the racial aspect as in differences among the various races in rural communities, (3) stay broad with the US as a whole but categorize by racial groups, then further simply to location (per time zone, per region (ie : Southeast, Northeast), per state or communities (rural, urban, suburban).
