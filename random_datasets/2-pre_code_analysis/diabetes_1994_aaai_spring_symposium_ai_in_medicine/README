@@ -1,12 +1,8 @@
-This directory contain a data set prepared for the use of participants
-for the 1994 AAAI Spring Symposium on Artificial Intelligence in Medicine.
+https://archive.ics.uci.edu/ml/datasets/Diabetes
 
-* diabetes-data.tar.Z contains the distribution for 70 sets of data recorded
-on diabetes patients (several weeks' to months' worth of glucose, insulin,
-and lifestyle data per patient + a description of the problem domain).
-Archived using tar and compressed.
 
-Extract the data files from the archive.  On a Unix system, type
-'tar xvf icu-data.tar'.  This will create a new directory named  ICU-Data
-and extract all data files into that directory.  Very occasionally
-this may not work; in that case try 'tar xvof' instead of 'tar xvf'.
+This is a double time series of blood glucose levels for 70 different participants. The high-level time component varies per individual as in unique features per data set/ per individual are year and number of months. Low-level time component is measured by specific time for that day. Another feature to distinguish by is in accordance to their code. Some codes of the total which is 20 are 58 = Pre-breakfast blood glucose measurement, 59 = Post-breakfast blood glucose measurement, 60 = Pre-lunch blood glucose measurement, 61 = Post-lunch blood glucose measurement, 62 = Pre-supper blood glucose measurement, 63 = Post-supper blood glucose measurement, 64 = Pre-snack blood glucose measurement.
+
+
+
+I find this interesting because I believe in personalized health being that we are all biologically unique. Broadly, TSA would be useful here in recognizing some patterns and predicting what could the blood glucose level be. An addition to the TSA component would be to create a machine/deep learning model to learn what foods are being consumed and making future predictions of if I eat an apple sometime between 8 AM to 10 AM or digest a meal between 6 PM and 8 PM, what could my blood sugar be? Then the decision, depending on how accurate the model is and other factors, could be made by that individual to either eat the apple or meal or to not. Another route is given my blood sugar from the previous month (TSA component), predict what I should eat (ML/DL model) from 8 AM to 10 AM or 6 PM to 8 PM (TSA + ML/DL model). An ideal system would take into account past data along with new data at a specific time and update by either suggesting to eat at another specified time or providing what foods could do to impact blood sugar (ie : 8 AM time constant, don’t eat & blood glucose level will be 93, eat an apple & it will raise to 115 or eat a banana which could raise level to 120). In each scenario, that individual will decide what to do and the model will update such that it can provide accurate suggestions.
