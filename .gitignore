@@ -79,3 +79,7 @@ random_datasets/2-pre_code_analysis/diabetes_1994_aaai_spring_symposium_ai_in_me
 *.pkl
 *.h5
 *.dat
+lab-information_sciences_institute/time_series_basics/healthRelatedResources.ipynb
+/Users/brinkley97/Documents/development/lab-information_sciences_institute/time_series_basics/.ipynb_checkpoints/healthRelatedResources-checkpoint.ipynb
+lab-information_sciences_institute/time_series_basics/heartDeseaseAndCancer.ipynb
+/Users/brinkley97/Documents/development/lab-information_sciences_institute/time_series_basics/.ipynb_checkpoints/heartDeseaseAndCancer-checkpoint.ipynb
