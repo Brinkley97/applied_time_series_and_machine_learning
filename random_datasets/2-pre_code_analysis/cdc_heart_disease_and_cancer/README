@@ -9,3 +9,7 @@ This interesting due to the fact that HD and cancer are the top two causes of de
 With this data and more statistics prior to 2008, we could predict future outcomes. More specifically, a question we could ask is : what might the heart disease and cancer rates be from 2038 - 2048 for both groups and all ages? Given this future prediction, we then could recommend proper mitigation habits to decrease chances of obtain either condition.
 
 As previously stated, this data is broad but I’d like to use time series analysis to discover the in-depths of heart disease (and other chronic illnesses) specifically for rural communities. There exists multiple routes we could explore. Some are (1) comparing rural time series health data to other communities, (2) stay within rural but navigate the racial aspect as in differences among the various races in rural communities, (3) stay broad with the US as a whole but categorize by racial groups, then further simply to location (per time zone, per region (ie : Southeast, Northeast), per state or by community (rural, urban, suburban).
+
+**Feedback**
+1. This is not TS data. It should be described as aggregate statistics by year.
+Update README w/ feedback from Yolanda
