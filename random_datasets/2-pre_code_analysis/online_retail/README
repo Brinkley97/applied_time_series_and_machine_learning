@@ -1,0 +1,14 @@
+https://archive.ics.uci.edu/ml/datasets/Online+Retail & https://archive.ics.uci.edu/ml/datasets/Online+Retail+II
+
+"This is a transnational data set which contains all the transactions occurring between 01/12/2010 and 09/12/2011 for a UK-based and registered non-store online retail." Would have to split month & time of Invoice Data as it's formatted as such mm/dd/yy mm:ss. Total observations is 541909. 8 total variables such as Quantity, UnitPrice, etc Would have to create an additional column to calculate the total cost (Quantity * UnitPrice) of each item.
+
+Questions/Further Explore
+(1) Relationship w/ respect to time and quantity
+  - What type of pattern (ie : trend, cyclic) exists when viewing quantity of entire data set per day, month?
+(2) Relationship w/ respect to time and cost (like total, avg, etc price)
+  - Of x item, how does the total cost/amount purchased fluctuates over time?
+(3) How often does each customer individually shop over the timeframe?
+  - Potentially gather insights on customer spending habits
+(4) Relationship w/ respect to time and country
+  - Per country, what is the frequency of daily, monthly expenditure amount?
+(5) There exist a few negative numbers so how to process those?

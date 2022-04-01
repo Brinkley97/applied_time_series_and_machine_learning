@@ -8,3 +8,5 @@ The main purpose of the dataset is Photoplethysmography(PPG)-based heart rate es
 
 
 This dataset is interesting because it’s personalized as in the measurements are specific to that individual for that duration and that activity. Future predictions of heart rate per individual could be made given previous heart rate time series data and current heart rate.
+
+Questions/Further Explore
