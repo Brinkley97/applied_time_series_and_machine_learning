@@ -1,0 +1,5 @@
+https://vincentarelbundock.github.io/Rdatasets/doc/Stat2Data/Pulse.html
+
+Pulse rates before and after exercise for 232 students. There exists 7 components (ie : Active Pulse rate (beats per minute) after exercise & Resting pulse rate (beats per minute))
+
+This is not TS data I'm interested in because $ \nexists $ (there doesn't exists) a  time component across some time span for a single individual. $ \exits $ a single point/instance in time which is typical hours of exercise (per week). This could be interesting data if continued to sample/test active & resting pulse @ multiple times in the day or every day over 1 week/1 month.
