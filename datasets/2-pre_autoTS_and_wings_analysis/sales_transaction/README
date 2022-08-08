@@ -1,7 +1,0 @@
-https://archive.ics.uci.edu/ml/datasets/Sales_Transactions_Dataset_Weekly
-
-This is a time series dataset on purchased quantities of 811 products for 52 weeks. There exist the product (product code), week #, and the normalized values of weekly data.
-
-Questions/Further Explore
-(1) How many of item x was purchased across the 52 weeks? Per quarter? Per month? Does there exist a positive or negative spike around holidays?
-(2) What are basics stats such as mean (which will show the average amount purchased for x time frame), mode (the # of purchases for product x that occurs the most), etc?

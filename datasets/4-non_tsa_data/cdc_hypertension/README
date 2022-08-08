@@ -1,8 +1,0 @@
-https://www.cdc.gov/nchs/hus/contents2019.htm#Figure-011
-
-This datasets tracks hypertension rate each year from 1999-2000 to 2017-2018 for a variety of individuals in the United States. This set of data doesn’t decompose into racial groups nor sex - only broad to all Americans but by age. The sensor here is the measurement of high blood pressure (systolic pressure of at least 130 mm Hg or diastolic pressure of at least 80 mm Hg) or taking high blood pressure medication.
-
-With this data and more statistics prior to 1999 and up to present time, we could predict future outcomes. More specifically, a question we could ask is : what might the hypertension rates be from 2038 - 2048. There are various ways we can make the question more specific by including racial groups, location (per time zone, per region (ie : Southeast, Northeast), per state or by communities (rural, urban, suburban)). 
-
-**Feedback**
-1. This is not TS data. It should be described as aggregate statistics by year.
