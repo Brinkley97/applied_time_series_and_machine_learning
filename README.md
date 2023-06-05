@@ -1,9 +1,7 @@
-# time_series_analysis_basics
+# applied_time_series_and_machine_learning
 
-- USC Information Sciences Institute (ISI) Lab : Time Series Analysis
-- Principal Scientist : [Dr. Yolanda Gil](https://viterbi.usc.edu/directory/faculty/Gil/Yolanda)
 
-## Notebooks
+# Notebooks
 1. [overview](https://github.com/Brinkley97/time_series_analysis_basics/blob/main/overview.ipynb)
     1. What is time series analysis (TSA)
     2. The importance of TSA
