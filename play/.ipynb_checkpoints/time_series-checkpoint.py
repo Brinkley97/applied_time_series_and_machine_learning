@@ -545,33 +545,30 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         # Display the plot
         plt.show()
-
-    def stationarity_test(self, series: list) -> str:
+    
+    def stationarity_test(self, t: int, t_lag_k: int) -> str:
         """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary. See page 25.
-
+        
         Parameters
         ----------
-        series: `list`
-            The list of observations
-`
+        t: `int`
+            The t-th observation
+        t_lag_k: `int`
+            The t-th observation with lag k
+        
+        Returns:
+        type_of_ts: `str`
         """
-        # series = time_series.tolist()
-        split_series = int(len(series) / 2)
-        series_1, series_2 = series[0:split_series], series[split_series:]
-        mean_1, mean_2 = series_1.mean(), series_2.mean()
-        var_1, var_2 = series_1.var(), series_2.var()
-        print('mean_1=%f, mean_2=%f' % (mean_1, mean_2))
-        print('variance_1=%f, variance_2=%f' % (var_1, var_2))
+        X = self.get_series(True)
+        split_series = int(len(X) / 2)
+        print(split_series)
+        X1, X2 = X[0:split_series], X[split_series:]
+        mean1, mean2 = X1.mean(), X2.mean()
+        var1, var2 = X1.var(), X2.var()
+        print('mean1=%f, mean2=%f' % (mean1, mean2))
+        print('variance1=%f, variance2=%f' % (var1, var2))
+        
 
-        if mean_1 == mean_2:
-            print('Mean is Stationary')
-        if var_1 == var_2:
-            print('Variance is Stationary')
-
-        if mean_1 != mean_2:
-            print('Mean is not Stationary')
-        if var_1 != var_2:
-            print('Variance is not Stationary')
 
 class MultivariateTimeSeries(TimeSeriesMixin):
     __name__ = "MultivariateTimeSeries"
