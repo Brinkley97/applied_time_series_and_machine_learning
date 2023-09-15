@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import yfinance as yf
 
@@ -24,16 +23,3 @@ def build_stock_uts(stock_symbol: str, stock_name: str, start_date: str, end_dat
         values_cols="Open",
         values=stock_df["Open"].values
     )
-
-def build_any_time_series_uts(file, time_col_name: str, value_col_name: str) -> UnivariateTimeSeries:
-    with open(file, 'rb') as f:
-        series = np.load(f)
-        data_df = pd.DataFrame(series, columns=[value_col_name])
-        # print(data_df)
-
-        return UnivariateTimeSeries(
-            time_col=time_col_name,
-            time_values=data_df.index,
-            values_cols=value_col_name,
-            values=data_df[value_col_name].values
-        )
