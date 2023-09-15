@@ -4,10 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-from typing import List, Tuple, Union, Any, TypedDict
 from abc import ABC, abstractmethod
-
+from statsmodels.tsa.stattools import adfuller
 from constants import Number, TimeSeriesData
+from typing import List, Tuple, Union, Any, TypedDict
 
 TimeSeries = Union["UnivariateTimeSeries", "MultivariateTimeSeries"]
 
@@ -90,8 +90,8 @@ class TimeSeriesFactory:
 
 class TimeSeriesMixin(ABC):
     def __init__(self, **kwargs: TimeSeriesParameters):
-        """Build a time series object from a time index and univariate or
-        multivariate time series data.
+        """Build a time series object from a time index and uni-variate or
+        multi-variate time series data.
         """
         col_names, col_values = TimeSeriesMixin._get_col_names_and_values(
             **kwargs
@@ -254,15 +254,20 @@ class UnivariateTimeSeries(TimeSeriesMixin):
     def __init__(self, **kwargs: TimeSeriesParameters):
         super().__init__(**kwargs)
 
-    @property
-    def time_col(self) -> str:
+    @property # a built-in Python decorator [a function that takes another function and extends the behavior of the latter function without explicitly modifying it]. It is used to give "special" functionality to certain methods
+    def get_time_col_name(self) -> str:
         """Get the name of the time column."""
         return self.data.index.name
 
     @property
-    def value_col(self) -> str:
+    def get_value_col_name(self) -> str:
         """Get the name of the value column."""
         return self.data.columns[0]
+
+    @property
+    def get_as_df(self) -> pd.DataFrame:
+        """Get the name and data."""
+        return self.data
 
     def _get_train_validation_test_split(
         self,
@@ -314,7 +319,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             time_col=self.time_col,
             time_values=self.data.index[start:end],
             values_cols=f"{self}[{start}:{end}]",
-            values=self.data[self.value_col].values[start:end].copy()
+            values=self.data[self.get_value_col_name].values[start:end].copy()
         )
 
         return slice_uts
@@ -337,7 +342,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         if lag == 0:
             return self.variance()[0]
         mean = self.mean()[0]
-        data = self.data[self.value_col].values
+        data = self.data[self.get_value_col_name].values
         autocovariance = np.sum((data[lag:] - mean) * (data[:-lag] - mean)) \
             / len(self)
         return autocovariance
@@ -409,13 +414,13 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         mean = self.mean()[0]
         std = self.std()[0]
         # Copy the data and grab the values from the value column
-        normalized_data = self.data[self.value_col].copy().values
+        normalized_data = self.data[self.get_value_col_name].copy().values
         normalized_data = (normalized_data - mean) / std
 
         normalized_uts = type(self)(
             time_col=self.time_col,
             time_values=self.data.index.values,
-            values_cols=f"Normalized({self.value_col})",
+            values_cols=f"Normalized({self.get_value_col_name})",
             values=normalized_data
         )
 
@@ -425,8 +430,8 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         """Get the univariate time series data."""
         data = self.data.copy() if is_copy else self.data
         if not with_label:
-            return data[self.value_col].values
-        return (data[self.value_col].values, self.value_col)
+            return data[self.get_value_col_name].values
+        return (data[self.get_value_col_name].values, self.get_value_col_name)
 
     def get_order_k_diff(self, k: int = 1) -> UnivariateTimeSeries:
         """Compute an order-k difference on the time series.
@@ -444,12 +449,12 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         """
         assert k + 1 <= len(self), f"Order-{k} differences can't be applied" \
             + f" to data with {len(self.data)} elements"
-        diff = np.diff(self.data[self.value_col].values, n=k)
+        diff = np.diff(self.data[self.get_value_col_name].values, n=k)
 
         order_k_diff_uts = type(self)(
             time_col=self.time_col,
             time_values=self.data.index[:diff.shape[0]],
-            values_cols=f"Order-{k} Difference of {self.value_col}",
+            values_cols=f"Order-{k} Difference of {self.get_value_col_name}",
             values=diff
         )
 
@@ -459,9 +464,9 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         # Plot the time series data
         plt.figure(figsize=(10, 6))  # Optional: Adjust the figure size
 
-        plt.plot(self.data.index, self.data[self.value_col])
+        plt.plot(self.data.index, self.data[self.get_value_col_name])
         plt.xlabel(self.time_col)
-        plt.ylabel(self.value_col)
+        plt.ylabel(self.get_value_col_name)
         plt.title(f"Plot of {self}")
 
         ax = plt.gca()
@@ -528,17 +533,17 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         # Plot the time series data
         plt.figure(figsize=(10, 6))
         plt.scatter(
-            self.data[self.value_col].values[:-lag],
-            self.data[self.value_col].values[lag:]
+            self.data[self.get_value_col_name].values[:-lag],
+            self.data[self.get_value_col_name].values[lag:]
         )
-        plt.xlabel(f"{self.value_col} at t")
-        plt.ylabel(f"{self.value_col} at t + {lag}")
+        plt.xlabel(f"{self.get_value_col_name} at t")
+        plt.ylabel(f"{self.get_value_col_name} at t + {lag}")
         plt.title(f"Scatter Plot of {self} at lag {lag}")
 
         # Using the normal equations, add a line of best fit to the scatter
         # plot
-        x = self.data[self.value_col].values[:-lag]
-        y = self.data[self.value_col].values[lag:]
+        x = self.data[self.get_value_col_name].values[:-lag]
+        y = self.data[self.get_value_col_name].values[lag:]
         A = np.vstack([x, np.ones(len(x))]).T
         m, c = np.linalg.lstsq(A, y, rcond=None)[0]
         plt.plot(x, m * x + c, 'r', label='Fitted line')
@@ -546,32 +551,27 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         # Display the plot
         plt.show()
 
-    def stationarity_test(self, series: list) -> str:
-        """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary. See page 25.
+    def stationarity_test(self, series):
+        """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
 
         Parameters
         ----------
-        series: `list`
+        series: `list` or `pd.DataFrame`
             The list of observations
 `
         """
-        # series = time_series.tolist()
-        split_series = int(len(series) / 2)
-        series_1, series_2 = series[0:split_series], series[split_series:]
-        mean_1, mean_2 = series_1.mean(), series_2.mean()
-        var_1, var_2 = series_1.var(), series_2.var()
-        print('mean_1=%f, mean_2=%f' % (mean_1, mean_2))
-        print('variance_1=%f, variance_2=%f' % (var_1, var_2))
+        if type(series) == pd.DataFrame:
+            series = self.get_series(False)
 
-        if mean_1 == mean_2:
-            print('Mean is Stationary')
-        if var_1 == var_2:
-            print('Variance is Stationary')
+        adfuller_result = adfuller(series)
+        adfuller_p_value = adfuller_result[1]
+        significance_level = 0.05
 
-        if mean_1 != mean_2:
-            print('Mean is not Stationary')
-        if var_1 != var_2:
-            print('Variance is not Stationary')
+        if adfuller_p_value < significance_level:
+            print("Series is stationary as", adfuller_p_value, "<", significance_level)
+        else:
+            print("Series is non-stationary as", adfuller_p_value, ">", significance_level)
+
 
 class MultivariateTimeSeries(TimeSeriesMixin):
     __name__ = "MultivariateTimeSeries"
