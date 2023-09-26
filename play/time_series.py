@@ -5,7 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 from abc import ABC, abstractmethod
+# test for stationarity
 from statsmodels.tsa.stattools import adfuller
+
+# partial autocorrelation
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
 from constants import Number, TimeSeriesData
 from typing import List, Tuple, Union, Any, TypedDict
 
@@ -264,65 +269,17 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         """Get the name of the value column."""
         return self.data.columns[0]
 
-    @property
+
     def get_as_df(self) -> pd.DataFrame:
         """Get the name and data."""
         return self.data
 
-    def _get_train_validation_test_split(
-        self,
-        train_size: int,
-        validation_size: int,
-    ) -> Tuple[UnivariateTimeSeries, ...]:
-        """Get the train, validation, and test splits of the time series data.
-
-        Parameters
-        ----------
-        train_size: `int`
-            The size of the training split
-        validation_size: `int`
-            The size of the validation split
-
-        Returns
-        -------
-        train: `UnivariateTimeSeries`
-            The training split
-        validation: `UnivariateTimeSeries`
-            The validation split
-        test: `UnivariateTimeSeries`
-            The test split
-        """
-        train = self.get_slice(0, train_size)
-        validation = self.get_slice(train_size, train_size + validation_size)
-        test = self.get_slice(train_size + validation_size, len(self))
-
-        return (train, validation, test)
-
-    # TODO: This should support start and end values that correspond to the
-    # type of the time index.
-    def get_slice(self, start: int, end: int) -> UnivariateTimeSeries:
-        """Get a slice of the univariate time series data.
-
-        Parameters
-        ----------
-        start: `int`
-            The index to start the slice
-        end: `int`
-            The index to end the slice
-
-        Returns
-        -------
-        uts: `UnivariateTimeSeries`
-            A new instance of univariate time series with the sliced data
-        """
-        slice_uts = type(self)(
-            time_col=self.time_col,
-            time_values=self.data.index[start:end],
-            values_cols=f"{self}[{start}:{end}]",
-            values=self.data[self.get_value_col_name].values[start:end].copy()
-        )
-
-        return slice_uts
+    def get_series(self, with_label: bool = False, is_copy=True) -> np.array:
+            """Get the univariate time series data."""
+            data = self.data.copy() if is_copy else self.data
+            if not with_label:
+                return data[self.get_value_col_name].values
+            return (data[self.get_value_col_name].values, self.get_value_col_name)
 
     def autocovariance(self, lag: int = 0) -> Number:
         """Compute the autocovariance of the time series data at a given lag.
@@ -401,71 +358,14 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         autocovariance_matrix = self.autocovariance_matrix(max_lag)
         return autocovariance_matrix / self.variance()[0]
 
-    def normalize(self) -> UnivariateTimeSeries:
-        """Normalize the univariate time series data by subtracting the mean and
-        dividing by the standard deviation.
-
-        Returns
-        -------
-        uts: `UnivariateTimeSeries`
-            An new instance of univariate time series with updated value column
-            name
-        """
-        mean = self.mean()[0]
-        std = self.std()[0]
-        # Copy the data and grab the values from the value column
-        normalized_data = self.data[self.get_value_col_name].copy().values
-        normalized_data = (normalized_data - mean) / std
-
-        normalized_uts = type(self)(
-            time_col=self.time_col,
-            time_values=self.data.index.values,
-            values_cols=f"Normalized({self.get_value_col_name})",
-            values=normalized_data
-        )
-
-        return normalized_uts
-
-    def get_series(self, with_label: bool = False, is_copy=True) -> np.array:
-        """Get the univariate time series data."""
-        data = self.data.copy() if is_copy else self.data
-        if not with_label:
-            return data[self.get_value_col_name].values
-        return (data[self.get_value_col_name].values, self.get_value_col_name)
-
-    def get_order_k_diff(self, k: int = 1) -> UnivariateTimeSeries:
-        """Compute an order-k difference on the time series.
-
-        Parameters
-        ----------
-        k: `int`
-            The k-th order difference to compute
-
-        Returns
-        -------
-        uts: `UnivariateTimeSeries`
-            An new instance of univariate time series with updated value column
-            name
-        """
-        assert k + 1 <= len(self), f"Order-{k} differences can't be applied" \
-            + f" to data with {len(self.data)} elements"
-        diff = np.diff(self.data[self.get_value_col_name].values, n=k)
-
-        order_k_diff_uts = type(self)(
-            time_col=self.time_col,
-            time_values=self.data.index[:diff.shape[0]],
-            values_cols=f"Order-{k} Difference of {self.get_value_col_name}",
-            values=diff
-        )
-
-        return order_k_diff_uts
-
     def plot(self, tick_skip=90):
         # Plot the time series data
-        plt.figure(figsize=(10, 6))  # Optional: Adjust the figure size
 
+        plt.figure(figsize=(20, 5))  # Optional: Adjust the figure size
+
+        # self.data is a pd.DataFrame
         plt.plot(self.data.index, self.data[self.get_value_col_name])
-        plt.xlabel(self.time_col)
+        plt.xlabel(self.get_time_col_name)
         plt.ylabel(self.get_value_col_name)
         plt.title(f"Plot of {self}")
 
@@ -490,7 +390,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         autocorrelation_matrix = self.autocorrelation_matrix(max_lag)
 
         # Plot the autocorrelation matrix
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(20, 4))
         plt.xlabel("Lag")
         plt.ylabel("Autocorrelation Coefficient")
         plt.title(f"Autocorrelation Matrix of {self} with Lag {max_lag}")
@@ -519,6 +419,9 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         PADDING = .1
         plt.ylim(np.min(y_axis_data) - PADDING, np.max(y_axis_data) + PADDING)
 
+        plt.show()
+
+        plot_acf(self.data)
         plt.show()
 
     def scatter_plot(self, lag: int = 1):
@@ -552,25 +455,148 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         plt.show()
 
     def stationarity_test(self, series):
-        """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
+            """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
+
+            Parameters
+            ----------
+            series: `list` or `pd.DataFrame`
+                The list of observations
+    `
+            """
+            if type(series) == pd.DataFrame:
+                series = self.get_series(False)
+
+            adfuller_result = adfuller(series)
+            adfuller_p_value = adfuller_result[1]
+            significance_level = 0.05
+
+            if adfuller_p_value < significance_level:
+                print("Series is stationary as", adfuller_p_value, "<", significance_level)
+            else:
+                print("Series is non-stationary as", adfuller_p_value, ">", significance_level)
+
+    def data_augment_for_returns(self) -> UnivariateTimeSeries:
+        """Calculate the percent change."""
+        returns = self.data[self.get_value_col_name].pct_change().dropna().values.copy()
+
+        returns_uts = type(self)(
+            time_col=self.get_time_col_name,
+            time_values=self.data.index[1:],
+            values_cols="Returns",
+            values=returns
+        )
+
+        return returns_uts
+
+    def get_slice(self, start: int, end: int) -> UnivariateTimeSeries:
+        """Get a slice of the univariate time series data.
 
         Parameters
         ----------
-        series: `list` or `pd.DataFrame`
-            The list of observations
-`
+        start: `int`
+            The index to start the slice
+        end: `int`
+            The index to end the slice
+
+        Returns
+        -------
+        uts: `UnivariateTimeSeries`
+            A new instance of univariate time series with the sliced data
         """
-        if type(series) == pd.DataFrame:
-            series = self.get_series(False)
+        print(type(self.data[self.get_value_col_name].values[start:end].copy()), self.data[self.get_value_col_name].values[start:end].copy())
 
-        adfuller_result = adfuller(series)
-        adfuller_p_value = adfuller_result[1]
-        significance_level = 0.05
+        slice_uts = type(self)(
+            time_col=self.get_time_col_name,
+            time_values=self.data.index[start:end],
+            values_cols=f"{self}[{start}:{end}]",
+            values=self.data[self.get_value_col_name].values[start:end].copy()
+        )
 
-        if adfuller_p_value < significance_level:
-            print("Series is stationary as", adfuller_p_value, "<", significance_level)
-        else:
-            print("Series is non-stationary as", adfuller_p_value, ">", significance_level)
+        return slice_uts
+
+    def _get_train_validation_test_split(
+        self,
+        train_size: int,
+        validation_size: int,
+    ) -> Tuple[UnivariateTimeSeries, ...]:
+        """Get the train, validation, and test splits of the time series data.
+
+        Parameters
+        ----------
+        train_size: `int`
+            The size of the training split
+        validation_size: `int`
+            The size of the validation split
+
+        Returns
+        -------
+        train: `UnivariateTimeSeries`
+            The training split
+        validation: `UnivariateTimeSeries`
+            The validation split
+        test: `UnivariateTimeSeries`
+            The test split
+        """
+        train = self.get_slice(0, train_size)
+        validation = self.get_slice(train_size, train_size + validation_size)
+        test = self.get_slice(train_size + validation_size, len(self))
+
+        return (train, validation, test)
+
+    # TODO: This should support start and end values that correspond to the
+    # type of the time index.
+
+    def normalize(self) -> UnivariateTimeSeries:
+        """Normalize the univariate time series data by subtracting the mean and
+        dividing by the standard deviation.
+
+        Returns
+        -------
+        uts: `UnivariateTimeSeries`
+            An new instance of univariate time series with updated value column
+            name
+        """
+        mean = self.mean()[0]
+        std = self.std()[0]
+        # Copy the data and grab the values from the value column
+        normalized_data = self.data[self.get_value_col_name].copy().values
+        normalized_data = (normalized_data - mean) / std
+
+        normalized_uts = type(self)(
+            time_col=self.time_col,
+            time_values=self.data.index.values,
+            values_cols=f"Normalized({self.get_value_col_name})",
+            values=normalized_data
+        )
+
+        return normalized_uts
+
+    def get_order_k_diff(self, k: int = 1) -> UnivariateTimeSeries:
+        """Compute an order-k difference on the time series.
+
+        Parameters
+        ----------
+        k: `int`
+            The k-th order difference to compute
+
+        Returns
+        -------
+        uts: `UnivariateTimeSeries`
+            An new instance of univariate time series with updated value column
+            name
+        """
+        assert k + 1 <= len(self), f"Order-{k} differences can't be applied" \
+            + f" to data with {len(self.data)} elements"
+        diff = np.diff(self.data[self.get_value_col_name].values, n=k)
+
+        order_k_diff_uts = type(self)(
+            time_col=self.time_col,
+            time_values=self.data.index[:diff.shape[0]],
+            values_cols=f"Order-{k} Difference of {self.get_value_col_name}",
+            values=diff
+        )
+
+        return order_k_diff_uts
 
 
 class MultivariateTimeSeries(TimeSeriesMixin):
