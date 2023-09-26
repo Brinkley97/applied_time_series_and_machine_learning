@@ -20,7 +20,7 @@ class Model(ABC):
     """
     data: pd.DataFrame
 
-    def plot1D(col_name: str, dataset_name: str, data):
+    def plot1D(col_name: str, dataset_name: str, data_df: pd.DataFrame):
         """
 
         Parameters
@@ -31,14 +31,15 @@ class Model(ABC):
         dataset_name: `str`
             The name of the dataset(s) corresponding to the univariate or
             multivariate time series data
-        data: `TimeSeriesData`
+        data_df: `pd.DataFrame`
             The univariate or multivariate time series raw data
         """
 
-        plt.plot(data, col_name)
+        data_df.plot(x_compat=True)
 
-        plt.title(f"Univariate Time Series {ticker}")
+        plt.title(f"Univariate Time Series {dataset_name}")
         plt.xlabel("Time")
-        plt.ylabel("Price")
+        plt.xticks(rotation=45)
+        plt.ylabel(col_name)
 
         plt.show()
