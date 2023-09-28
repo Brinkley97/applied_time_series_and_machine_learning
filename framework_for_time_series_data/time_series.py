@@ -503,8 +503,8 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         uts: `UnivariateTimeSeries`
             A new instance of univariate time series with the sliced data
         """
-        print(type(self.data[self.get_value_col_name].values[start:end].copy()), self.data[self.get_value_col_name].values[start:end].copy())
-
+        # print(type(self.data[self.get_value_col_name].values[start:end].copy()), self.data[self.get_value_col_name].values[start:end].copy())
+        print(start, end)
         slice_uts = type(self)(
             time_col=self.get_time_col_name,
             time_values=self.data.index[start:end],
@@ -540,6 +540,11 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         train = self.get_slice(0, train_size)
         validation = self.get_slice(train_size, train_size + validation_size)
         test = self.get_slice(train_size + validation_size, len(self))
+
+        # total = train_size + validation_size
+        # print(train_size, validation_size, total)
+        # assert total == 100, "Invalid. Train and validation summed must be less than 100."
+        # train = self[0: ]
 
         return (train, validation, test)
 
