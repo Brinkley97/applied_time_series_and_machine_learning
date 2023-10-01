@@ -221,20 +221,8 @@ class TimeSeriesMixin(ABC):
     ) -> Tuple[TimeSeries, ...]:
         pass
 
-    def get_historical_data(self, time_series: np.array) -> np.array:
-        """Split to only get the historical time series data.
-
-        Parameters
-        ----------
-        time_series: `np.array`
-            The time series
-
-        Returns
-        -------
-
-        """
-
-        return time_series[:-1]
+    def get_historical_data(self):
+        return len(self.get_series()), self.get_series()
 
     def get_true_label_data(self, time_series: np.array) -> np.array:
         """Split to only get the true label time series data.
