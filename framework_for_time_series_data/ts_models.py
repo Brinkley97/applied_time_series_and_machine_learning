@@ -28,16 +28,63 @@ class AR(Model):
     def __name__(self):
         return "AR"
 
-    def train_ar_model(self, train_data, lag):
-        ar_model = AutoReg(train_data, lags=lag)
-        train_ar_model = ar_model.fit()
-        train_ar_model.summary()
+    def train_ar_model(self, train_data: np.array, test_lags: list) -> list:
+        """Initial and train an autoregressive model.
 
-        return train_ar_model
+        Parameters
+        ----------
+        train_data: `np.array`
+            Data to train our autoregressive model on
+        test_lags: `list`
+            A list of lag values to pass to autoregressive model
 
-    def ar_predict(self, trained_ar_model, len_historical_data: np.array, train: np.array, test: np.array, dynamic) -> np.array:
+        Returns
+        ------
+        trained_ar_models: `list`
+            A list of trained autoregressive models with each differing by lag value
 
-        return trained_ar_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=dynamic)
+        """
+        trained_ar_models = []
+        for test_lags_idx in range(len(test_lags)):
+            test_lag = test_lags[test_lags_idx]
+            print("Model", test_lags_idx + 1, "with a lag of", test_lag)
+
+            ar_model = AutoReg(train_data, lags=test_lag)
+            trained_ar_model = ar_model.fit()
+            trained_ar_model.summary()
+            trained_ar_models.append(trained_ar_model)
+
+        return trained_ar_models
+
+    def ar_predict(self, trained_ar_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+        """Make predictions with trained autoregressive models.
+
+        Parameters
+        ----------
+        trained_ar_models: AR models
+            Trained autoregressive models
+        len_historical_data: `np.array`
+            The length of our historical data
+        train: `np.array`
+            The training data
+        test: `np.array`
+            The testing data
+
+        Returns
+        ------
+        predictions: `list`
+            A list of predictions for each autoregressive model with each differing by lag value
+
+        """
+
+        predictions = []
+        for trained_ar_models_idx in range(len(trained_ar_models)):
+            trained_ar_model = trained_ar_models[trained_ar_models_idx]
+            print("Model", trained_ar_models_idx + 1, trained_ar_model)
+            model_prediction = trained_ar_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
+            predictions.append(model_prediction)
+
+        return predictions
 
 @dataclass
 class EvaluationMetric:
@@ -46,17 +93,24 @@ class EvaluationMetric:
     https://realpython.com/python-type-checking/
     """
 
-    def eval_mse(true_labels: np.array, predictions: np.array) -> float:
+    def eval_mse(true_labels: np.array, predictions: np.array):
         """Calculate the mean squared error"""
         for predictions_idx in range(len(predictions)):
             prediction = predictions[predictions_idx]
-            true_label = true_labels[predictions_idx]
-            print('expected=%f, predicted=%f' % (true_label, prediction))
-        mse = sqrt(mean_squared_error(true_labels, predictions))
-        return mse
+            mse = sqrt(mean_squared_error(true_labels, prediction))
+            print("expected", true_labels, "predicted", prediction, "mse", mse)
 
-    def plot_forecast(true_labels: np.array, predictions: np.array):
+    def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list):
         """Plots the forecast of each model respectively on the same plot."""
-        plt.plot(true_labels, color='blue')
-        plt.plot(predictions, color='red')
-        plt.show()
+        for predictions_idx in range(len(predictions)):
+            prediction = predictions[predictions_idx]
+            lag = test_lags[predictions_idx]
+
+            plt.figure(figsize=(20, 4))
+            plt.xlabel("Observations")
+            plt.ylabel("Values")
+            plt.title(f"Model {predictions_idx + 1} with Lag {lag}")
+
+            plt.plot(true_labels, color='blue')
+            plt.plot(prediction, color='red')
+            plt.show()
