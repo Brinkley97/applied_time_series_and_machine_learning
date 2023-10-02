@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from statsmodels.tsa.stattools import adfuller
 
 # partial autocorrelation
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.graphics import tsaplots
 
 from constants import Number, TimeSeriesData
 from typing import List, Tuple, Union, Any, TypedDict
@@ -142,30 +142,6 @@ class TimeSeriesMixin(ABC):
 
         return col_names, col_values
 
-    def mean(self, axis: int = 0):
-        return self.data.mean(axis=axis)
-
-    def std(self, axis: int = 0):
-        return self.data.std(axis=axis)
-
-    def variance(self, axis: int = 0) -> pd.Series:
-        return self.data.var(axis=axis)
-
-    def max_min_range(self, axis: int = 0) -> pd.Series:
-        max_value = self.data.max(axis=axis)
-        min_value = self.data.min(axis=axis)
-        range = max_value - min_value
-        return max_value, min_value, range
-
-    def __str__(self) -> str:
-        columns = ", ".join(self.data.columns)
-        return f"{self.__name__}({columns})"
-
-    def __repr__(self):
-        return str(self)
-
-    def __len__(self) -> int:
-        return self.data.shape[0]
 
     def get_statistics(self) -> pd.DataFrame:
         """Get the statistics of the univariate time series data.
@@ -176,6 +152,31 @@ class TimeSeriesMixin(ABC):
             The statistics of the univariate time series data
         """
         return self.data.describe()
+
+    def max_min_range(self, axis: int = 0) -> pd.Series:
+        max_value = self.data.max(axis=axis)
+        min_value = self.data.min(axis=axis)
+        range = max_value - min_value
+        return ({"Max": max_value, "Min": min_value, "Range": range})
+
+    def mean(self, axis: int = 0):
+        return self.data.mean(axis=axis)
+
+    def std(self, axis: int = 0):
+        return self.data.std(axis=axis)
+
+    def variance(self, axis: int = 0) -> pd.Series:
+        return self.data.var(axis=axis)
+
+    def __str__(self) -> str:
+        columns = ", ".join(self.data.columns)
+        return f"{self.__name__}({columns})"
+
+    def __repr__(self):
+        return str(self)
+
+    def __len__(self) -> int:
+        return self.data.shape[0]
 
     def get_train_validation_test_split(
         self,
@@ -366,6 +367,27 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         # Display the plot
         plt.show()
 
+    def stationarity_test(self, series):
+            """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
+
+            Parameters
+            ----------
+            series: `list` or `pd.DataFrame`
+                The list of observations
+    `
+            """
+            if type(series) == pd.DataFrame:
+                series = self.get_series(False)
+
+            adfuller_result = adfuller(series)
+            adfuller_p_value = adfuller_result[1]
+            significance_level = 0.05
+
+            if adfuller_p_value < significance_level:
+                print("Series is stationary as", adfuller_p_value, "<", significance_level)
+            else:
+                print("Series is non-stationary as", adfuller_p_value, ">", significance_level)
+
     def plot_autocorrelation(self, max_lag: int = 1, plot_full: bool = False):
         """Plot the autocorrelation of the time series data.
 
@@ -409,7 +431,12 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         plt.show()
 
-        plot_acf(self.data)
+        tsaplots.plot_acf(self.data)
+        plt.show()
+
+    def plot_partial_autocorrelation(self, max_lag: int = 1):
+
+        tsaplots.plot_pacf(self.data.squeeze(), lags=max_lag, method='ywm')
         plt.show()
 
     def scatter_plot(self, lag: int = 1):
@@ -442,26 +469,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         # Display the plot
         plt.show()
 
-    def stationarity_test(self, series):
-            """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
-
-            Parameters
-            ----------
-            series: `list` or `pd.DataFrame`
-                The list of observations
-    `
-            """
-            if type(series) == pd.DataFrame:
-                series = self.get_series(False)
-
-            adfuller_result = adfuller(series)
-            adfuller_p_value = adfuller_result[1]
-            significance_level = 0.05
-
-            if adfuller_p_value < significance_level:
-                print("Series is stationary as", adfuller_p_value, "<", significance_level)
-            else:
-                print("Series is non-stationary as", adfuller_p_value, ">", significance_level)
 
     def data_augment_for_returns(self) -> UnivariateTimeSeries:
         """Calculate the percent change."""
