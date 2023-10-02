@@ -1,3 +1,5 @@
+import matplotx
+
 import numpy as np
 import pandas as pd
 
@@ -111,6 +113,7 @@ class EvaluationMetric:
             plt.ylabel("Values")
             plt.title(f"Model {predictions_idx + 1} with Lag {lag}")
 
-            plt.plot(true_labels, color='blue')
-            plt.plot(prediction, color='red')
+            plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=4)
+            plt.plot(prediction, color='red', label='Predicted Forecasts', linewidth=4)
+            matplotx.line_labels()
             plt.show()
