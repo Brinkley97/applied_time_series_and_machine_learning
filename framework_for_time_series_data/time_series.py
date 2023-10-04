@@ -153,6 +153,7 @@ class TimeSeriesMixin(ABC):
         """
         return self.data.describe()
 
+    # write code to support the returning of the specific date for the max, min, and range
     def max_min_range(self, axis: int = 0) -> pd.Series:
         max_value = self.data.max(axis=axis)
         min_value = self.data.min(axis=axis)
