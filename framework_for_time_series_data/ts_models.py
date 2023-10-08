@@ -26,6 +26,10 @@ class Model(ABC):
     Methods decorated with @abstractmethod must be implemented; if not, the interpreter will throw an error. Methods not decorated will be shared by all other classes that inherit from Model.
     """
 
+    @abstractmethod
+    def predict(self):
+        pass
+
 class AR(Model):
     def __name__(self):
         return "AR"
@@ -58,7 +62,7 @@ class AR(Model):
 
         return trained_ar_models
 
-    def ar_predict(self, trained_ar_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+    def predict(self, trained_ar_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
         """Make predictions with trained autoregressive models.
 
         Parameters
@@ -88,6 +92,22 @@ class AR(Model):
 
         return predictions
 
+class PersistenceWalkForward(Model):
+    def __name__(self):
+        return "Persistence Walk Forward"
+
+    def pwf_model(self, x):
+        return x
+
+    def predict(self, test_X):
+        predictions = []
+        for x in test_X:
+            yhat = self.pwf_model(x)
+            predictions.append(yhat)
+            print('Predicted Forecasts:', predictions)
+
+        return predictions
+
 @dataclass
 class EvaluationMetric:
     """Investigate the philosphy/design behind typing in python.
@@ -95,25 +115,41 @@ class EvaluationMetric:
     https://realpython.com/python-type-checking/
     """
 
-    def eval_mse(true_labels: np.array, predictions: np.array):
+    def eval_mse(true_labels: np.array, predictions: np.array, per_element=True):
         """Calculate the mean squared error"""
-        for predictions_idx in range(len(predictions)):
-            prediction = predictions[predictions_idx]
-            mse = sqrt(mean_squared_error(true_labels, prediction))
-            print("expected", true_labels, "predicted", prediction, "mse", mse)
+        if per_element == True:
+            for predictions_idx in range(len(predictions)):
+                prediction = predictions[predictions_idx]
+                mse = sqrt(mean_squared_error(true_labels, prediction))
+                print("expected", true_labels, "predicted", prediction, "mse", mse)
+        else:
+            mse = mean_squared_error(true_labels, predictions)
+            print('Test MSE: %.3f' % mse)
 
-    def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list):
+    def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list, with_lags= True):
         """Plots the forecast of each model respectively on the same plot."""
-        for predictions_idx in range(len(predictions)):
-            prediction = predictions[predictions_idx]
-            lag = test_lags[predictions_idx]
 
+        if with_lags == True:
+            for predictions_idx in range(len(predictions)):
+                prediction = predictions[predictions_idx]
+                lag = test_lags[predictions_idx]
+
+                plt.figure(figsize=(20, 4))
+                plt.xlabel("Observations")
+                plt.ylabel("Values")
+                plt.title(f"Model {predictions_idx + 1} with Lag {lag}")
+
+                plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=4)
+                plt.plot(prediction, color='red', label='Predicted Forecasts', linewidth=4)
+        else:
             plt.figure(figsize=(20, 4))
             plt.xlabel("Observations")
             plt.ylabel("Values")
-            plt.title(f"Model {predictions_idx + 1} with Lag {lag}")
+            plt.title(f"Model")
 
             plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=4)
-            plt.plot(prediction, color='red', label='Predicted Forecasts', linewidth=4)
-            matplotx.line_labels()
-            plt.show()
+            plt.plot(predictions, color='red', label='Predicted Forecasts', linewidth=4)
+
+
+        matplotx.line_labels()
+        plt.show()
