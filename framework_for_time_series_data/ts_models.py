@@ -26,9 +26,13 @@ class Model(ABC):
     Methods decorated with @abstractmethod must be implemented; if not, the interpreter will throw an error. Methods not decorated will be shared by all other classes that inherit from Model.
     """
 
+    def augment_data(self):
+        pass
+
     @abstractmethod
     def predict(self):
         pass
+
 
 class AR(Model):
     def __name__(self):
@@ -95,6 +99,12 @@ class AR(Model):
 class PersistenceWalkForward(Model):
     def __name__(self):
         return "Persistence Walk Forward"
+
+    def augment_data(self, df: pd.DataFrame, sliding_window: int) -> pd.DataFrame:
+        lags_df = pd.concat([df.shift(sliding_window), df], axis=1)
+        lags_df.columns = ['t - 1', 't + 1']
+
+        return lags_df
 
     def pwf_model(self, x):
         return x
