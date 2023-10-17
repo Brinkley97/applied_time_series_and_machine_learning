@@ -371,6 +371,14 @@ class UnivariateTimeSeries(TimeSeriesMixin):
     def stationarity_test(self, series):
             """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
 
+            Null hypothesis: data has a unit root (data is non-stationary)
+            Alt hypothesis: data is stationary
+
+            If we reject the Null, then the data is stationary.
+            In order to reject the null, we need our P-value to be less than our stat. sig. level
+
+            In order to use most models inclusing machine learning models, the data must be stationary.
+
             Parameters
             ----------
             series: `list` or `pd.DataFrame`
