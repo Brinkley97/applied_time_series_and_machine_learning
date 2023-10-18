@@ -32,3 +32,5 @@ play/.DS_Store
 *.MP4
 .DS_Store
 .DS_Store
+newspaper_forecast/.ipynb_checkpoints/
+newspaper_forecast/
