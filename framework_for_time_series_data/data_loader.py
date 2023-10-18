@@ -18,6 +18,11 @@ def build_airline_passenger_uts() -> UnivariateTimeSeries:
     )
 
 def build_stock_uts(stock_symbol: str, stock_name: str, start_date: str, end_date: str) -> UnivariateTimeSeries:
+    """
+
+    Note why use Close instead of open
+    """
+
     stock_df = yf.download(stock_symbol, start=start_date, end=end_date)
 
     return UnivariateTimeSeries(
@@ -44,6 +49,7 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
     # if file_extension == ".csv":
     #     data_df = pd.read_csv(path_to_file)
 
+    # update: if index is originally 0, change to 1. Maybe return both.
     if file_extension == ".npy":
         with open(path_to_file, 'rb') as f:
             series = np.load(f)
