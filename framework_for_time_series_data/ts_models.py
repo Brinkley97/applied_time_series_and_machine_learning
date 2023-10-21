@@ -12,6 +12,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 
 from statsmodels.tsa.ar_model import AutoReg
+from statsmodels.tsa.arima.model import ARIMA
 
 from constants import Number, TimeSeriesData
 from time_series import UnivariateTimeSeries
@@ -34,6 +35,8 @@ class Model(ABC):
         pass
 
 
+# class AR(AutoReg):
+# OR
 class AR(Model):
     def __name__(self):
         return "AR"
@@ -117,6 +120,70 @@ class PersistenceWalkForward(Model):
             print('Predicted Forecasts:', predictions)
 
         return predictions
+
+class MA(Model):
+    def __name__(self):
+        return "MA"
+
+    def train_model(self, train_data: np.array, test_error_terms: list) -> list:
+        """Initial and train an autoregressive model.
+
+        Parameters
+        ----------
+        train_data: `np.array`
+            Data to train our autoregressive model on
+        test_lags: `list`
+            A list of lag values to pass to autoregressive model
+
+        Returns
+        ------
+        trained_ar_models: `list`
+            A list of trained autoregressive models with each differing by lag value
+
+        """
+        trained_ma_models = []
+        for test_error_terms_idx in range(len(test_error_terms)):
+            test_error_term = test_error_terms[test_error_terms_idx]
+            print("MA(", test_error_term, ")")
+
+            ma_model = ARIMA(train_data, order=(0, 0, test_error_terms))
+            trained_ma_model = ma_model.fit()
+            trained_ma_model.summary()
+            trained_ma_models.append(trained_ma_model)
+
+        return trained_ma_models
+
+    def predict(self, trained_ma_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+        """Make predictions with trained autoregressive models.
+
+        Parameters
+        ----------
+        trained_ar_models: AR models
+            Trained autoregressive models
+        len_historical_data: `np.array`
+            The length of our historical data
+        train: `np.array`
+            The training data
+        test: `np.array`
+            The testing data
+
+        Returns
+        ------
+        predictions: `list`
+            A list of predictions for each autoregressive model with each differing by lag value
+
+        """
+
+        predictions = []
+        for trained_ma_models_idx in range(len(trained_ma_models)):
+            trained_ma_model = trained_ma_models[trained_ma_models_idx]
+            print("MA(", trained_ma_model, ")")
+            print("MA(", test_error_term, ")")
+            model_prediction = trained_ma_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
+            predictions.append(model_prediction)
+
+        return predictions
+
 
 @dataclass
 class EvaluationMetric:
