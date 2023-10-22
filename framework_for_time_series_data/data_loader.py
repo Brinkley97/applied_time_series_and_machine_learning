@@ -3,6 +3,7 @@ import os.path
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import statsmodels.api as sm
 
 from time_series import UnivariateTimeSeries
 
@@ -41,6 +42,22 @@ def build_air_temperature_uts() -> UnivariateTimeSeries:
         values_cols="Temp",
         values=data_df["Temp"].values
     )
+
+def build_sunspots_uts() -> UnivariateTimeSeries:
+    # data_df = pd.read_csv("../datasets/daily-min-temperatures.csv")
+    print(sm.datasets.sunspots.NOTE)
+    data_df = sm.datasets.sunspots.load_pandas().data
+    data_df.index = pd.Index(sm.tsa.datetools.dates_from_range("1700", "2008"))
+    data_df.index.freq = data_df.index.inferred_freq
+
+
+    return UnivariateTimeSeries(
+        time_col="YEAR",
+        time_values=data_df["YEAR"],
+        values_cols="SUNACTIVITY",
+        values=data_df["SUNACTIVITY"].values
+    )
+
 
 def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
     file_extension = os.path.splitext(path_to_file)[1]
