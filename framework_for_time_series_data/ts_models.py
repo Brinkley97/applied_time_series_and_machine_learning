@@ -178,12 +178,10 @@ class MA(Model):
         for trained_ma_models_idx in range(len(trained_ma_models)):
             trained_ma_model = trained_ma_models[trained_ma_models_idx]
             print("MA(", trained_ma_model, ")")
-            print("MA(", test_error_term, ")")
             model_prediction = trained_ma_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
             predictions.append(model_prediction)
 
         return predictions
-
 
 @dataclass
 class EvaluationMetric:
