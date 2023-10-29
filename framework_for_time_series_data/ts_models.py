@@ -64,7 +64,7 @@ class AR(Model):
 
             ar_model = AutoReg(train_data, lags=test_lag)
             trained_ar_model = ar_model.fit()
-            trained_ar_model.summary()
+            print(trained_ar_model.summary())
             trained_ar_models.append(trained_ar_model)
 
         return trained_ar_models
@@ -126,7 +126,7 @@ class MA(Model):
         return "MA"
 
     def train_model(self, train_data: np.array, test_error_terms: list) -> list:
-        """Initial and train an autoregressive model.
+        """Initial and train an moving average model.
 
         Parameters
         ----------
@@ -154,7 +154,7 @@ class MA(Model):
         return trained_ma_models
 
     def predict(self, trained_ma_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
-        """Make predictions with trained autoregressive models.
+        """Make predictions with trained moving average models.
 
         Parameters
         ----------
@@ -170,7 +170,7 @@ class MA(Model):
         Returns
         ------
         predictions: `list`
-            A list of predictions for each autoregressive model with each differing by lag value
+            A list of predictions for each moving average model with each differing by lag value
 
         """
 
@@ -179,6 +179,73 @@ class MA(Model):
             trained_ma_model = trained_ma_models[trained_ma_models_idx]
             print("MA(", trained_ma_model, ")")
             model_prediction = trained_ma_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
+            predictions.append(model_prediction)
+
+        return predictions
+
+class ARMA(Model):
+    def __name__(self):
+        return "ARMA"
+
+    def train_arma_model(self, train_data: np.array, test_lags: list, test_error_terms: list) -> list:
+        """Initial and train an autoregressive model moving average model.
+
+        Parameters
+        ----------
+        train_data: `np.array`
+            Data to train our autoregressive model on
+        test_lags: `list`
+            A list of lag values to pass to autoregressive model
+
+        Returns
+        ------
+        trained_ar_models: `list`
+            A list of trained autoregressive models with each differing by lag value
+
+        """
+        if len(test_lags) != len(test_error_terms):
+            raise ValueError("Lengths of test_lags and test_error_terms must be the same")
+
+        test_lags_and_error_terms = len(test_lags)
+        trained_arma_models = []
+        for test_lags_and_error_terms_idx in range(test_lags_and_error_terms):
+            test_lag_term = test_lags[test_lags_and_error_terms_idx]
+            test_error_term = test_error_terms[test_lags_and_error_terms_idx]
+            print("ARMA(", test_lag_term, 0, test_error_term, ")")
+
+            arma_model = ARIMA(train_data, order=(test_lag_term, 0, test_error_terms), trend="n")
+            trained_arma_model = arma_model.fit()
+            print(trained_arma_model.summary())
+            trained_arma_models.append(trained_arma_model)
+
+        return trained_arma_models
+
+    def predict(self, trained_arma_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+        """Make predictions with trained autoregressive moving average models.
+
+        Parameters
+        ----------
+        trained_arma_models: ARMA models
+            Trained autoregressive moving average models
+        len_historical_data: `np.array`
+            The length of our historical data
+        train: `np.array`
+            The training data
+        test: `np.array`
+            The testing data
+
+        Returns
+        ------
+        predictions: `list`
+            A list of predictions for each autoregressive moving average model with each differing by lag value
+
+        """
+
+        predictions = []
+        for trained_arma_models_idx in range(len(trained_arma_models)):
+            trained_arma_model = trained_arma_models[trained_arma_models_idx]
+            print("ARMA(", trained_arma_model, ")")
+            model_prediction = trained_arma_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
             predictions.append(model_prediction)
 
         return predictions
@@ -201,7 +268,7 @@ class EvaluationMetric:
             mse = mean_squared_error(true_labels, predictions)
             print('Test MSE: %.3f' % mse)
 
-    def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list, with_lags= True):
+    def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list, with_lags=True):
         """Plots the forecast of each model respectively on the same plot."""
 
         if with_lags == True:
