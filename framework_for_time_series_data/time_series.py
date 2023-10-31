@@ -393,9 +393,17 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             significance_level = 0.05
 
             if adfuller_p_value < significance_level:
-                print("Series is stationary as", adfuller_p_value, "<", significance_level)
+                print('ADF Statistic: %f' % adfuller_result[0])
+                print('p-value: %f' % adfuller_result[1], '<', significance_level, ', so stationary')
+                print('Critical Values:' )
+                for key, value in adfuller_result[4].items():
+                    print('\t%s: %.3f' % (key, value))
             else:
-                print("Series is non-stationary as", adfuller_p_value, ">", significance_level)
+                print('ADF Statistic: %f' % adfuller_result[0])
+                print('p-value: %f' % adfuller_result[1], '>', significance_level, ', so non-stationary')
+                print('Critical Values:' )
+                for key, value in adfuller_result[4].items():
+                    print('\t%s: %.3f' % (key, value))
 
     def plot_autocorrelation(self, max_lag: int = 1, plot_full: bool = False):
         """Plot the autocorrelation of the time series data.
@@ -487,6 +495,19 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             time_col=self.get_time_col_name,
             time_values=self.data.index[1:],
             values_cols="Returns",
+            values=returns
+        )
+
+        return returns_uts
+
+    def data_augment_with_differencing(self, difference_order: int) -> UnivariateTimeSeries:
+        """Calculate the differences between current observation and previous observation."""
+        returns = self.data[self.get_value_col_name].diff(difference_order).dropna().values.copy()
+
+        returns_uts = type(self)(
+            time_col=self.get_time_col_name,
+            time_values=self.data.index[1:],
+            values_cols="Differenced",
             values=returns
         )
 
