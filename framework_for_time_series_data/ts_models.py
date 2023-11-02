@@ -34,8 +34,48 @@ class Model(ABC):
     def predict(self):
         pass
 
+class RandomWalk(Model):
+    def __name__(self):
+        return "Persistence Walk Forward"
 
-# class AR(AutoReg):
+    def predict(self, x, y):
+        predictions = list()
+        history = x[-1]
+        # print(history)
+
+        for i in range(len(y)):
+            yhat = history
+            predictions.append(yhat)
+            # print(predictions)
+            history = y[i]
+            # print(history)
+
+        return predictions
+
+
+class PersistenceWalkForward(Model):
+    def __name__(self):
+        return "Persistence Walk Forward"
+
+    def augment_data(self, df: pd.DataFrame, sliding_window: int) -> pd.DataFrame:
+        lags_df = pd.concat([df.shift(sliding_window), df], axis=1)
+        lags_df.columns = ['t - 1', 't + 1']
+
+        return lags_df
+
+    def pwf_model(self, x):
+        return x
+
+    def predict(self, test_X):
+        predictions = []
+        for x in test_X:
+            yhat = self.pwf_model(x)
+            predictions.append(yhat)
+            print('Predicted Forecasts:', predictions)
+
+        return predictions
+
+# extend class AR(AutoReg):
 # OR
 class AR(Model):
     def __name__(self):
@@ -96,28 +136,6 @@ class AR(Model):
             print("Model", trained_ar_models_idx + 1, trained_ar_model)
             model_prediction = trained_ar_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
             predictions.append(model_prediction)
-
-        return predictions
-
-class PersistenceWalkForward(Model):
-    def __name__(self):
-        return "Persistence Walk Forward"
-
-    def augment_data(self, df: pd.DataFrame, sliding_window: int) -> pd.DataFrame:
-        lags_df = pd.concat([df.shift(sliding_window), df], axis=1)
-        lags_df.columns = ['t - 1', 't + 1']
-
-        return lags_df
-
-    def pwf_model(self, x):
-        return x
-
-    def predict(self, test_X):
-        predictions = []
-        for x in test_X:
-            yhat = self.pwf_model(x)
-            predictions.append(yhat)
-            print('Predicted Forecasts:', predictions)
 
         return predictions
 
@@ -213,7 +231,7 @@ class ARMA(Model):
             test_error_term = test_error_terms[test_lags_and_error_terms_idx]
             print("ARMA(", test_lag_term, 0, test_error_term, ")")
 
-            arma_model = ARIMA(train_data, order=(test_lag_term, 0, test_error_terms), trend="n")
+            arma_model = ARIMA(train_data, order=(test_lag_term, 1, test_error_terms), trend="n")
             trained_arma_model = arma_model.fit()
             print(trained_arma_model.summary())
             trained_arma_models.append(trained_arma_model)
@@ -262,11 +280,12 @@ class EvaluationMetric:
         if per_element == True:
             for predictions_idx in range(len(predictions)):
                 prediction = predictions[predictions_idx]
-                mse = sqrt(mean_squared_error(true_labels, prediction))
+                mse = mean_squared_error(true_labels, prediction)
                 print("expected", true_labels, "predicted", prediction, "mse", mse)
         else:
             mse = mean_squared_error(true_labels, predictions)
             print('Test MSE: %.3f' % mse)
+
 
     def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list, with_lags=True):
         """Plots the forecast of each model respectively on the same plot."""
