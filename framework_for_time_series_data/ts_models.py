@@ -38,17 +38,30 @@ class RandomWalk(Model):
     def __name__(self):
         return "Persistence Walk Forward"
 
-    def predict(self, x, y):
+    def predict(self, train_raw_x: np.array, test_raw_y: np.array):
+        """Make predictions with the Random Walk Model using the raw data. We use the raw data because we know there's a dependence of the current observation on the previous observation. We're able to capture the overall direction of the data.
+
+        Formally stated by Jason Brownlee in: https://machinelearningmastery.com/gentle-introduction-random-walk-times-series-forecasting-python/
+            'We can expect that the best prediction we could make would be to use the observation at the previous time step as what will happen in the next time step. Simply because we know that the next time step will be a function of the prior time step.'
+
+        With this, we don't difference nor do we get the returns.
+
+        Parameters
+        ----------
+        train_raw_x: `np.array`
+            The raw train data
+         test_raw_y: `np.array`
+            The raw test data
+
+        """
         predictions = list()
-        history = x[-1]
+        history = train_raw_x[-1]
         # print(history)
 
-        for i in range(len(y)):
+        for i in range(len(test_raw_y)):
             yhat = history
             predictions.append(yhat)
-            # print(predictions)
-            history = y[i]
-            # print(history)
+            history = test_raw_y[i]
 
         return predictions
 
@@ -285,6 +298,17 @@ class EvaluationMetric:
         else:
             mse = mean_squared_error(true_labels, predictions)
             print('Test MSE: %.3f' % mse)
+
+    def eval_rmse(true_labels: np.array, predictions: np.array, per_element=True):
+        """Calculate the root mean squared error"""
+        if per_element == True:
+            for predictions_idx in range(len(predictions)):
+                prediction = predictions[predictions_idx]
+                rmse = sqrt(mean_squared_error(true_labels, prediction))
+                print("expected", true_labels, "predicted", prediction, "rmse", rmse)
+        else:
+            rmse = sqrt(mean_squared_error(true_labels, predictions))
+            print('Test RMSE: %.3f' % rmse)
 
 
     def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list, with_lags=True):
