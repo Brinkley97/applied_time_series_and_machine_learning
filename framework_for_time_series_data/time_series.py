@@ -501,7 +501,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         return returns_uts
 
     def data_augment_with_differencing(self, difference_order: int) -> UnivariateTimeSeries:
-        """Calculate the differences between current observation and previous observation."""
+        """Calculate the differences between current observation and previous observation for all observations."""
         returns = self.data[self.get_value_col_name].diff(difference_order).dropna().values.copy()
 
         returns_uts = type(self)(
