@@ -163,13 +163,13 @@ class MA(Model):
         ----------
         train_data: `np.array`
             Data to train our autoregressive model on
-        test_lags: `list`
-            A list of lag values to pass to autoregressive model
+        test_error_terms: `list`
+            A list of error terms to pass to moving average model
 
         Returns
         ------
-        trained_ar_models: `list`
-            A list of trained autoregressive models with each differing by lag value
+        trained_ma_models: `list`
+            A list of trained moving average models with each differing by the moving average value we provide
 
         """
         trained_ma_models = []
@@ -219,7 +219,7 @@ class ARMA(Model):
         return "ARMA"
 
     def train_arma_model(self, train_data: np.array, test_lags: list, test_error_terms: list) -> list:
-        """Initial and train an autoregressive model moving average model.
+        """Initial and train an autoregressive moving average model.
 
         Parameters
         ----------
@@ -227,11 +227,13 @@ class ARMA(Model):
             Data to train our autoregressive model on
         test_lags: `list`
             A list of lag values to pass to autoregressive model
+        test_error_terms: `list`
+            A list of error terms to pass to moving average model
 
         Returns
         ------
         trained_ar_models: `list`
-            A list of trained autoregressive models with each differing by lag value
+            A list of trained autoregressive moving average models with each differing by lag value
 
         """
         if len(test_lags) != len(test_error_terms):
@@ -277,6 +279,79 @@ class ARMA(Model):
             trained_arma_model = trained_arma_models[trained_arma_models_idx]
             print("ARMA(", trained_arma_model, ")")
             model_prediction = trained_arma_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
+            predictions.append(model_prediction)
+
+        return predictions
+
+class ARIMA_model(Model):
+    def __name__(self):
+        return "ARIMA"
+
+    def train_arima_model(self, train_data: np.array, test_lags: list, test_error_terms: list, integrated: int) -> list:
+        """Initial and train an autoregressive integrated moving average model.
+
+        Parameters
+        ----------
+        train_data: `np.array`
+            Data to train our autoregressive model on
+        test_lags: `list`
+            A list of lag values to pass to autoregressive model
+        test_error_terms: `list`
+            A list of error terms to pass to moving average model
+        integrated: `int`
+            An integer value to difference the TS
+
+        Returns
+        ------
+        trained_arima_models: `list`
+            A list of trained autoregressive integrated moving average models
+
+        """
+        if len(test_lags) != len(test_error_terms):
+            raise ValueError("Lengths of test_lags and test_error_terms must be the same")
+
+        test_lags_and_error_terms = len(test_lags)
+        trained_arima_models = []
+
+        for test_lags_and_error_terms_idx in range(test_lags_and_error_terms):
+            test_lag_term = test_lags[test_lags_and_error_terms_idx]
+            test_error_term = test_error_terms[test_lags_and_error_terms_idx]
+            print("ARIMA(", test_lag_term, integrated, test_error_term, ")")
+
+            arima_model = ARIMA(train_data, order=(test_lag_term, integrated, test_error_terms), trend="n")
+            trained_arima_model = arima_model.fit()
+            print(trained_arima_model.summary())
+            trained_arima_models.append(trained_arima_model)
+
+        return trained_arima_models
+
+    def predict(self, trained_arima_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+        """Make predictions with trained autoregressive integrated moving average models.
+
+        Parameters
+        ----------
+        trained_arma_models: ARMA models
+            Trained autoregressive moving average models
+        len_historical_data: `np.array`
+            The length of our historical data
+        train: `np.array`
+            The training data
+        test: `np.array`
+            The testing data
+
+        Returns
+        ------
+        predictions: `list`
+            A list of predictions for each autoregressive integrated moving average model
+
+        """
+
+        predictions = []
+
+        for trained_arima_models_idx in range(len(trained_arima_models)):
+            trained_arima_model = trained_arima_models[trained_arima_models_idx]
+            print("ARIMA(", trained_arima_model, ")")
+            model_prediction = trained_arima_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
             predictions.append(model_prediction)
 
         return predictions
