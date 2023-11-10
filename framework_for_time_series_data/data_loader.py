@@ -18,18 +18,28 @@ def build_airline_passenger_uts() -> UnivariateTimeSeries:
         values=data_df["#Passengers"].values
     )
 
-def build_stock_uts(stock_symbol: str, stock_name: str, start_date: str, end_date: str) -> UnivariateTimeSeries:
+def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: str, start_date: str, end_date: str, frequency: str) -> UnivariateTimeSeries:
+    """Get the statistics of the univariate time series data.
+
+    Parameters
+    ----------
+    independent_variable: `str`
+        The single variable of interests. Use "Close" price listing to evaluate end of day or overall market sentiment. How much can I make at the end of X day?
+
+    frequency: `str`
+        The yfinance library supports various intervals for downloading financial data. Some are '1d': Daily, '1wk': Weekly, '1mo': Monthly , '5m': 5 minutes, '15m': 15 minutes, '30m': 30 minutes, '1h': 1 hour, '90d': 3 months (approximated)
+
+    Returns
+    -------
+    `UnivariateTimeSeries`
     """
 
-    Note why use Close instead of open
-    """
-
-    stock_df = yf.download(stock_symbol, start=start_date, end=end_date)
+    stock_df = yf.download(stock_symbol, start=start_date, end=end_date, interval=frequency)
 
     return UnivariateTimeSeries(
         time_col="Date",
         time_values=stock_df.index,
-        values_cols="Open",
+        values_cols=independent_variable,
         values=stock_df["Open"].values
     )
 
@@ -58,6 +68,18 @@ def build_sunspots_uts() -> UnivariateTimeSeries:
         values=data_df["SUNACTIVITY"].values
     )
 
+def build_website_traffic_uts() -> UnivariateTimeSeries:
+    # Get website traffic data and build our UTS
+    data_df = pd.read_csv("../datasets/website_data.csv")
+    data_df["Timestamp"] = data_df.index
+    data_df.set_index("Timestamp", inplace=True)
+
+    return UnivariateTimeSeries(
+        time_col=data_df.index.name,
+        time_values=data_df.index,
+        values_cols="traffic",
+        values=data_df["traffic"].values
+    )
 
 def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
     file_extension = os.path.splitext(path_to_file)[1]
@@ -71,7 +93,7 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
         with open(path_to_file, 'rb') as f:
             series = np.load(f)
             data_df = pd.DataFrame(series, columns=['Observations'])
-            data_df["Timestamp"] = data_df.index
+            data_df['Timestamp'] = data_df.index
             data_df.set_index('Timestamp', inplace=True)
 
         return UnivariateTimeSeries(
