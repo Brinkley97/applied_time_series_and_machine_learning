@@ -394,13 +394,13 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
             if adfuller_p_value < significance_level:
                 print('ADF Statistic: %f' % adfuller_result[0])
-                print('p-value: %f' % adfuller_result[1], '<', significance_level, ', so stationary')
+                print('p-value: %f' % adfuller_result[1], '<', significance_level, ', so reject null-hypothesis as the TS is stationary')
                 print('Critical Values:' )
                 for key, value in adfuller_result[4].items():
                     print('\t%s: %.3f' % (key, value))
             else:
                 print('ADF Statistic: %f' % adfuller_result[0])
-                print('p-value: %f' % adfuller_result[1], '>', significance_level, ', so non-stationary')
+                print('p-value: %f' % adfuller_result[1], '>', significance_level, ', so accept the null-hypothesis as the TS is non-stationary')
                 print('Critical Values:' )
                 for key, value in adfuller_result[4].items():
                     print('\t%s: %.3f' % (key, value))
