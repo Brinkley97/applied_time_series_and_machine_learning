@@ -264,7 +264,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         """Get the name and data."""
         return self.data
 
-    def get_series(self, with_label: bool = False, is_copy=True) -> np.array:
+    def get_series(self, with_label: bool = False, is_copy = True) -> np.array:
             """Get the univariate time series data."""
             data = self.data.copy() if is_copy else self.data
             if not with_label:
@@ -512,6 +512,26 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         )
 
         return returns_uts
+    def data_augment_reverse(self) -> UnivariateTimeSeries:
+        """Reorganize the UTS with respect to the rows.
+        """
+        reverse_ts = self.data.iloc[::-1]
+        # print(type(reverse_ts), reverse_ts)
+        reversed_time_values = reverse_ts.index
+        # print()
+        # print(reversed_time_values)
+        # print()
+        reversed_values = reverse_ts[self.get_value_col_name].values
+        # print(reversed_values)
+
+        reversed_uts = type(self)(
+            time_col=self.get_time_col_name,
+            time_values=reversed_time_values,
+            values_cols=self.get_value_col_name,
+            values=reversed_values
+        )
+
+        return reversed_uts
 
     def get_slice(self, start: int, end: int) -> UnivariateTimeSeries:
         """Get a slice of the univariate time series data.
