@@ -103,5 +103,21 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
             values=data_df["Observations"].values
         )
 
+    if file_extension == ".csv":
+        data_csv = pd.read_csv(path_to_file)
+        columns = data_csv.columns
+        series = data_csv.values
+        data_df = pd.DataFrame(series, columns=['Timestamp', 'Observations'])
+        # data_df['Timestamp'] = data_csv.columns[0]
+        data_df.set_index('Timestamp', inplace=True)
+
+        return UnivariateTimeSeries(
+            time_col=data_df.index.name,
+            time_values=data_df.index,
+            values_cols="Observations",
+            values=data_df["Observations"].values
+        )
+
+
     else:
         print("File extension not supported yet. Contact me at dbrinkle@usc.edu so I can add support for this file extension.")
