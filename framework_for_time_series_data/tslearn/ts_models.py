@@ -123,7 +123,7 @@ class AR(Model):
 
         return trained_ar_models
 
-    def predict(self, trained_ar_models, go: int, stop: int) -> np.array:
+    def predict(self, trained_ar_models, train_data: np.array, test_data: np.array) -> np.array:
         """Make predictions with trained autoregressive models.
 
         Parameters
@@ -138,12 +138,15 @@ class AR(Model):
             A list of predictions for each autoregressive model with each differing by lag value
 
         """
+        # This is correct. Example: Days 1, 2, 3, ..., 10. We want to predict day 8, 9, and 10. We train on days 1, 2, ..., 7. We test on days 8, 9, and 10. Start is length of historical data, here 7. End is 7 + 3 - 1 = 9. So, our model will make predictions from 7, 8, 9?
+        start = len(train_data)
+        end = start + len(test_data) - 1
 
         predictions = []
         for trained_ar_models_idx in range(len(trained_ar_models)):
             trained_ar_model = trained_ar_models[trained_ar_models_idx]
             print("Model", trained_ar_models_idx + 1, trained_ar_model)
-            model_prediction = trained_ar_model.predict(start=go, end=stop, dynamic=False)
+            model_prediction = trained_ar_model.predict(start=start, end=end, dynamic=False)
             predictions.append(model_prediction)
 
         return predictions
