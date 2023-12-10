@@ -118,23 +118,19 @@ class AR(Model):
             ar_model = AutoReg(train_data, lags=test_lag)
             trained_ar_model = ar_model.fit()
             print(trained_ar_model.summary())
+            print()
             trained_ar_models.append(trained_ar_model)
 
         return trained_ar_models
 
-    def predict(self, trained_ar_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+    def predict(self, trained_ar_models, go: int, stop: int) -> np.array:
         """Make predictions with trained autoregressive models.
 
         Parameters
         ----------
         trained_ar_models: AR models
             Trained autoregressive models
-        len_historical_data: `np.array`
-            The length of our historical data
-        train: `np.array`
-            The training data
-        test: `np.array`
-            The testing data
+
 
         Returns
         ------
@@ -147,7 +143,7 @@ class AR(Model):
         for trained_ar_models_idx in range(len(trained_ar_models)):
             trained_ar_model = trained_ar_models[trained_ar_models_idx]
             print("Model", trained_ar_models_idx + 1, trained_ar_model)
-            model_prediction = trained_ar_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
+            model_prediction = trained_ar_model.predict(start=go, end=stop, dynamic=False)
             predictions.append(model_prediction)
 
         return predictions
@@ -179,24 +175,20 @@ class MA(Model):
 
             ma_model = ARIMA(train_data, order=(0, 0, test_error_terms))
             trained_ma_model = ma_model.fit()
-            trained_ma_model.summary()
+            print(trained_ma_model.summary())
+            print()
             trained_ma_models.append(trained_ma_model)
 
         return trained_ma_models
 
-    def predict(self, trained_ma_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+    def predict(self, trained_ma_models, go: int, stop: int) -> np.array:
         """Make predictions with trained moving average models.
 
         Parameters
         ----------
         trained_ar_models: AR models
             Trained autoregressive models
-        len_historical_data: `np.array`
-            The length of our historical data
-        train: `np.array`
-            The training data
-        test: `np.array`
-            The testing data
+
 
         Returns
         ------
@@ -209,7 +201,7 @@ class MA(Model):
         for trained_ma_models_idx in range(len(trained_ma_models)):
             trained_ma_model = trained_ma_models[trained_ma_models_idx]
             print("MA(", trained_ma_model, ")")
-            model_prediction = trained_ma_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
+            model_prediction = trained_ma_model.predict(start=go, end=stop, dynamic=False)
             predictions.append(model_prediction)
 
         return predictions
