@@ -94,15 +94,15 @@ class AR(Model):
     def __name__(self):
         return "AR"
 
-    def train_ar_model(self, train_data: np.array, test_lags: list) -> list:
+    def train_ar_model(self, train_data: pd.DataFrame, threshold_lags: list) -> list:
         """Initial and train an autoregressive model.
 
         Parameters
         ----------
-        train_data: `np.array`
+        train_data: `pd.DataFrame`
             Data to train our autoregressive model on
-        test_lags: `list`
-            A list of lag values to pass to autoregressive model
+        lags: `list`
+            A list of lag values that are over a threshold to pass to autoregressive model
 
         Returns
         ------
@@ -110,20 +110,20 @@ class AR(Model):
             A list of trained autoregressive models with each differing by lag value
 
         """
-        trained_ar_models = []
-        for test_lags_idx in range(len(test_lags)):
-            test_lag = test_lags[test_lags_idx]
-            print("Model", test_lags_idx + 1, "with a lag of", test_lag)
+        # trained_ar_models = []
+        # for test_lags_idx in range(len(test_lags)):
+        #     test_lag = test_lags[test_lags_idx]
+        #     print("Model", test_lags_idx + 1, "with a lag of", test_lag)
 
-            ar_model = AutoReg(train_data, lags=test_lag)
-            trained_ar_model = ar_model.fit()
-            print(trained_ar_model.summary())
-            print()
-            trained_ar_models.append(trained_ar_model)
+        ar_model = AutoReg(train_data, lags=threshold_lags)
+        trained_ar_model = ar_model.fit()
+        # print(trained_ar_model.summary())
+        # print("Lag: ", test_lag)
+        # trained_ar_models.append(trained_ar_model)
 
-        return trained_ar_models
+        return trained_ar_model
 
-    def predict(self, trained_ar_models, train_data: np.array, test_data: np.array) -> np.array:
+    def predict(self, trained_ar_model, train_data: np.array, test_data: np.array) -> np.array:
         """Make predictions with trained autoregressive models.
 
         Parameters
@@ -143,11 +143,11 @@ class AR(Model):
         end = start + len(test_data) - 1
 
         predictions = []
-        for trained_ar_models_idx in range(len(trained_ar_models)):
-            trained_ar_model = trained_ar_models[trained_ar_models_idx]
-            print("Model", trained_ar_models_idx + 1, trained_ar_model)
-            model_prediction = trained_ar_model.predict(start=start, end=end, dynamic=False)
-            predictions.append(model_prediction)
+        # for trained_ar_models_idx in range(len(trained_ar_models)):
+        #     trained_ar_model = trained_ar_models[trained_ar_models_idx]
+        #     print("Model", trained_ar_models_idx + 1, trained_ar_model)
+        model_prediction = trained_ar_model.predict(start=start, end=end, dynamic=False)
+        predictions.append(model_prediction)
 
         return predictions
 
@@ -316,7 +316,7 @@ class ARIMA_model(Model):
 
         Parameters
         ----------
-        trained_arma_models: ARMA models
+        trained_arma_models: `ARMA models`
             Trained autoregressive moving average models
         len_historical_data: `np.array`
             The length of our historical data
@@ -372,23 +372,43 @@ class EvaluationMetric:
             print('Test RMSE: %.3f' % rmse)
 
 
-    def plot_forecast(true_labels: np.array, predictions: np.array, test_lags: list, with_lags=True):
-        """Plots the forecast of each model respectively on the same plot."""
+    def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, with_lags=True):
+        """Plots the forecast of each model respectively on the same plot.
+
+        Parameters
+        ----------
+        train_data_df: `pd.DataFrame`
+            The data we used to train our model(s)
+
+        test_data_df: `pd.DataFrame`
+            The data we used to make forecasts
+        """
+
+
 
         if with_lags == True:
             for predictions_idx in range(len(predictions)):
                 prediction = predictions[predictions_idx]
-                lag = test_lags[predictions_idx]
 
-                plt.figure(figsize=(20, 4))
+                plt.figure(figsize=(18, 4))
                 plt.xlabel("Observations")
                 plt.ylabel("Values")
-                plt.title(f"Model {predictions_idx + 1} with Lag {lag}")
+                plt.title("Forecast")
 
-                plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=4)
-                plt.plot(prediction, color='red', label='Predicted Forecasts', linewidth=1)
+                # Plotting the training data
+                train_dates = train_data_df.index
+                train_values = train_data_df.values
+                plt.plot(train_dates, train_values, color='blue', label='Training Data', linewidth=1)
+
+                # Plotting the actual test data
+                test_dates = test_data_df.index
+                test_values = test_data_df.values
+                plt.plot(test_dates, test_values, color='green', label='Actual Forecasts', linewidth=4)
+
+                # Plotting the forecasted values
+                plt.plot(test_dates, prediction, color='red', label='Predicted Forecasts', linewidth=1)
         else:
-            plt.figure(figsize=(20, 4))
+            plt.figure(figsize=(18, 4))
             plt.xlabel("Observations")
             plt.ylabel("Values")
             plt.title(f"Model")
