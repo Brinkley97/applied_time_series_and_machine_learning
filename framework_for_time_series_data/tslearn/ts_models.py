@@ -94,36 +94,29 @@ class AR(Model):
     def __name__(self):
         return "AR"
 
-    def train_ar_model(self, train_data: pd.DataFrame, threshold_lags: list) -> list:
+    def train_ar_model(self, train_data_df: pd.DataFrame, threshold_lags: list):
         """Initial and train an autoregressive model.
 
         Parameters
         ----------
-        train_data: `pd.DataFrame`
+        train_data_df: `pd.DataFrame`
             Data to train our autoregressive model on
-        lags: `list`
+        threshold_lags: `list`
             A list of lag values that are over a threshold to pass to autoregressive model
 
         Returns
         ------
-        trained_ar_models: `list`
+        trained_ar_model: `statsmodel AutoReg model`
             A list of trained autoregressive models with each differing by lag value
 
         """
-        # trained_ar_models = []
-        # for test_lags_idx in range(len(test_lags)):
-        #     test_lag = test_lags[test_lags_idx]
-        #     print("Model", test_lags_idx + 1, "with a lag of", test_lag)
 
-        ar_model = AutoReg(train_data, lags=threshold_lags)
+        ar_model = AutoReg(train_data_df, lags=threshold_lags)
         trained_ar_model = ar_model.fit()
-        # print(trained_ar_model.summary())
-        # print("Lag: ", test_lag)
-        # trained_ar_models.append(trained_ar_model)
 
         return trained_ar_model
 
-    def predict(self, trained_ar_model, train_data: np.array, test_data: np.array) -> np.array:
+    def predict(self, trained_ar_model, train_data_df: pd.DataFrame, test_data_df: pd.DataFrame) -> list:
         """Make predictions with trained autoregressive models.
 
         Parameters
@@ -131,6 +124,11 @@ class AR(Model):
         trained_ar_models: AR models
             Trained autoregressive models
 
+        train_data_df: `pd.DataFrame`
+            The data we used to train our model(s)
+
+        test_data_df: `pd.DataFrame`
+            The actual forecasts
 
         Returns
         ------
@@ -139,18 +137,17 @@ class AR(Model):
 
         """
         # This is correct. Example: Days 1, 2, 3, ..., 10. We want to predict day 8, 9, and 10. We train on days 1, 2, ..., 7. We test on days 8, 9, and 10. Start is length of historical data, here 7. End is 7 + 3 - 1 = 9. So, our model will make predictions from 7, 8, 9?
-        start = len(train_data)
-        end = start + len(test_data) - 1
+        start = len(train_data_df)
+        end = start + len(test_data_df) - 1
 
         predictions = []
-        # for trained_ar_models_idx in range(len(trained_ar_models)):
-        #     trained_ar_model = trained_ar_models[trained_ar_models_idx]
-        #     print("Model", trained_ar_models_idx + 1, trained_ar_model)
+
         model_prediction = trained_ar_model.predict(start=start, end=end, dynamic=False)
         predictions.append(model_prediction)
 
         return predictions
 
+# Need to rebuild and verify
 class MA(Model):
     def __name__(self):
         return "MA"
@@ -208,7 +205,7 @@ class MA(Model):
             predictions.append(model_prediction)
 
         return predictions
-
+# Need to rebuild and verify
 class ARMA(Model):
     def __name__(self):
         return "ARMA"
@@ -348,7 +345,7 @@ class EvaluationMetric:
 
     https://realpython.com/python-type-checking/
     """
-
+    # Need to rebuild and verify
     def eval_mse(true_labels: np.array, predictions: np.array, per_element=True):
         """Calculate the mean squared error"""
         if per_element == True:
@@ -360,6 +357,7 @@ class EvaluationMetric:
             mse = mean_squared_error(true_labels, predictions)
             print('Test MSE: %.3f' % mse)
 
+    # Need to rebuild and verify
     def eval_rmse(true_labels: np.array, predictions: np.array, per_element=True):
         """Calculate the root mean squared error"""
         if per_element == True:
@@ -381,10 +379,11 @@ class EvaluationMetric:
             The data we used to train our model(s)
 
         test_data_df: `pd.DataFrame`
-            The data we used to make forecasts
+            The actual forecasts
+
+        predictions: `list`
+            The predicted forecasts
         """
-
-
 
         if with_lags == True:
             for predictions_idx in range(len(predictions)):
@@ -407,6 +406,47 @@ class EvaluationMetric:
 
                 # Plotting the forecasted values
                 plt.plot(test_dates, prediction, color='red', label='Predicted Forecasts', linewidth=1)
+        else:
+            plt.figure(figsize=(18, 4))
+            plt.xlabel("Observations")
+            plt.ylabel("Values")
+            plt.title(f"Model")
+
+            plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=4)
+            plt.plot(predictions, color='red', label='Predicted Forecasts', linewidth=1)
+
+
+        matplotx.line_labels()
+        plt.show()
+
+    def plot_forecast_only(test_data_df: pd.DataFrame, predictions: np.array, with_lags=True):
+        """Plots the forecast of each model respectively on the same plot.
+
+        Parameters
+        ----------
+        test_data_df: `pd.DataFrame`
+            The actual forecasts
+
+        predictions: `list`
+            The predicted forecasts
+        """
+
+        if with_lags == True:
+            for predictions_idx in range(len(predictions)):
+                prediction = predictions[predictions_idx]
+
+                plt.figure(figsize=(18, 4))
+                plt.xlabel("Observations")
+                plt.ylabel("Values")
+                plt.title("Forecast")
+
+                # Plotting the actual test data
+                test_dates = test_data_df.index
+                test_values = test_data_df.values
+                plt.plot(test_dates, test_values, color='green', label='Actual Forecasts', linewidth=4)
+
+                # Plotting the forecasted values
+                plt.plot(test_dates, prediction, color='red', label='Predicted Forecasts', linewidth=2)
         else:
             plt.figure(figsize=(18, 4))
             plt.xlabel("Observations")
