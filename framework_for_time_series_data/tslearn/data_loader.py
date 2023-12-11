@@ -40,7 +40,7 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
         time_col="Date",
         time_values=stock_df.index,
         values_cols=independent_variable,
-        values=stock_df["Open"].values
+        values=stock_df[independent_variable].values
     )
 
 def build_air_temperature_uts() -> UnivariateTimeSeries:
