@@ -310,6 +310,34 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         autocovariance = self.autocovariance(lag)
         return autocovariance / self.variance()[0]
 
+    def autocorrelation_with_threshold(self, threshold: float = 0.1) -> list:
+        """Check if autocorrelation value is above threshold and save
+
+        Parameters
+        ----------
+        acorr_value: `int`
+            The autocorrelation value
+            acorr_value: float,
+        threshold: `float`
+            The cutoff value for our autocorrelations
+
+        Returns
+        -------
+        threshold_autocorrelations: `list`
+            A list of autocorrelations above our threshold
+        """
+
+        threshold_autocorrelations = []
+        time_series = self.data
+
+        for lag in range(1, len(time_series)):
+            acorr_value = self.autocorrelation(lag)
+            # print(acorr_value)
+            if acorr_value > threshold:
+                threshold_autocorrelations.append(lag)
+
+        return threshold_autocorrelations
+
     def autocovariance_matrix(self, max_lag: int) -> np.array:
         """Compute the autocovariance matrix of the time series data.
 
