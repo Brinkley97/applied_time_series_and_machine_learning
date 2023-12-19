@@ -91,6 +91,16 @@ class PersistenceWalkForward(Model):
 # extend class AR(AutoReg):
 # OR
 class AR(Model):
+    """A class used to initialize, train, and forecast predictions with our autoregressive model
+
+    Methods
+    -------
+    train_ar_model(train_data_df: pd.DataFrame, threshold_lags: list)
+        Initial and train an autoregressive model
+    predict(trained_ar_model, train_data_df: pd.DataFrame, test_data_df: pd.DataFrame)
+        Make predictions with trained autoregressive models.
+
+    """
     def __name__(self):
         return "AR"
 
@@ -346,13 +356,14 @@ class EvaluationMetric:
     https://realpython.com/python-type-checking/
     """
     # Need to rebuild and verify
-    def eval_mse(true_labels: np.array, predictions: np.array, per_element=True):
+    def eval_mse(true_labels: pd.DataFrame, predictions: list, per_element=True):
         """Calculate the mean squared error"""
         if per_element == True:
+
             for predictions_idx in range(len(predictions)):
                 prediction = predictions[predictions_idx]
                 mse = mean_squared_error(true_labels, prediction)
-                print("expected", true_labels, "predicted", prediction, "mse", mse)
+                print('Test MSE: %.3f' % mse)
         else:
             mse = mean_squared_error(true_labels, predictions)
             print('Test MSE: %.3f' % mse)
@@ -364,7 +375,7 @@ class EvaluationMetric:
             for predictions_idx in range(len(predictions)):
                 prediction = predictions[predictions_idx]
                 rmse = sqrt(mean_squared_error(true_labels, prediction))
-                print("expected", true_labels, "predicted", prediction, "rmse", rmse)
+                print('Test RMSE: %.3f' % rmse)
         else:
             rmse = sqrt(mean_squared_error(true_labels, predictions))
             print('Test RMSE: %.3f' % rmse)
