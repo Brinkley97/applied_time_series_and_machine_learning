@@ -29,6 +29,9 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
     frequency: `str`
         The yfinance library supports various intervals for downloading financial data. Some are '1d': Daily, '1wk': Weekly, '1mo': Monthly , '5m': 5 minutes, '15m': 15 minutes, '30m': 30 minutes, '1h': 1 hour, '90d': 3 months (approximated)
 
+    end_date: `str`
+        The last date we want. This is exclusive (ie: I want 2023-06-21 in my data, I must set this param to 2023-06-22).
+
     Returns
     -------
     `UnivariateTimeSeries`
