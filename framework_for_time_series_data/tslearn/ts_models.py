@@ -38,7 +38,7 @@ class RandomWalk(Model):
     def __name__(self):
         return "Persistence Walk Forward"
 
-    def predict(self, train_raw_x: np.array, test_raw_y: np.array):
+    def predict(self, train_raw_x: pd.DataFrame, test_raw_y: pd.DataFrame):
         """Make predictions with the Random Walk Model using the raw data. We use the raw data because we know there's a dependence of the current observation on the previous observation. We're able to capture the overall direction of the data.
 
         Formally stated by Jason Brownlee in: https://machinelearningmastery.com/gentle-introduction-random-walk-times-series-forecasting-python/
@@ -48,20 +48,31 @@ class RandomWalk(Model):
 
         Parameters
         ----------
-        train_raw_x: `np.array`
+        train_raw_x: `pd.DataFrame`
             The raw train data
-         test_raw_y: `np.array`
+         test_raw_y: `pd.DataFrame`
             The raw test data
 
         """
+        # Convert to array
+        train_values = train_raw_x.values
+
+        # Convert to array
+        test_values = test_raw_y.values
+
         predictions = list()
-        history = train_raw_x[-1]
+
+        # Get last value in training set
+        history = train_values[-1]
         # print(history)
 
-        for i in range(len(test_raw_y)):
+        for i in range(len(test_values)):
+            # Set our predicted value to the last value, hence us depending on the previous observation
             yhat = history
             predictions.append(yhat)
-            history = test_raw_y[i]
+
+            # Set history value to the testing/true value at this current index
+            history = test_values[i]
 
         return predictions
 
@@ -381,7 +392,7 @@ class EvaluationMetric:
             print('Test RMSE: %.3f' % rmse)
 
 
-    def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, with_lags=True):
+    def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, per_element=True):
         """Plots the forecast of each model respectively on the same plot.
 
         Parameters
@@ -396,7 +407,7 @@ class EvaluationMetric:
             The predicted forecasts
         """
 
-        if with_lags == True:
+        if per_element == True:
             for predictions_idx in range(len(predictions)):
                 prediction = predictions[predictions_idx]
 
@@ -421,16 +432,25 @@ class EvaluationMetric:
             plt.figure(figsize=(18, 4))
             plt.xlabel("Observations")
             plt.ylabel("Values")
-            plt.title(f"Model")
+            plt.title(f"Forecast")
 
-            plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=4)
-            plt.plot(predictions, color='red', label='Predicted Forecasts', linewidth=1)
+            # Plotting the training data
+            train_dates = train_data_df.index
+            train_values = train_data_df.values
+            plt.plot(train_dates, train_values, color='blue', label='Training Data', linewidth=1)
 
+            # Plotting the actual test data
+            test_dates = test_data_df.index
+            test_values = test_data_df.values
+            plt.plot(test_dates, test_values, color='green', label='Actual Forecasts', linewidth=4)
+
+            # Plotting the forecasted values
+            plt.plot(test_dates, predictions, color='red', label='Predicted Forecasts', linewidth=1)
 
         matplotx.line_labels()
         plt.show()
 
-    def plot_forecast_only(test_data_df: pd.DataFrame, predictions: np.array, with_lags=True):
+    def plot_forecast_only(test_data_df: pd.DataFrame, predictions: np.array, per_element=True):
         """Plots the forecast of each model respectively on the same plot.
 
         Parameters
@@ -442,7 +462,7 @@ class EvaluationMetric:
             The predicted forecasts
         """
 
-        if with_lags == True:
+        if per_element == True:
             for predictions_idx in range(len(predictions)):
                 prediction = predictions[predictions_idx]
 
@@ -462,11 +482,15 @@ class EvaluationMetric:
             plt.figure(figsize=(18, 4))
             plt.xlabel("Observations")
             plt.ylabel("Values")
-            plt.title(f"Model")
+            plt.title("Forecast")
 
-            plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=4)
-            plt.plot(predictions, color='red', label='Predicted Forecasts', linewidth=1)
+            # Plotting the actual test data
+            test_dates = test_data_df.index
+            test_values = test_data_df.values
+            plt.plot(test_dates, test_values, color='green', label='Actual Forecasts', linewidth=4)
 
+            # Plotting the forecasted values
+            plt.plot(test_dates, predictions, color='red', label='Predicted Forecasts', linewidth=2)
 
         matplotx.line_labels()
         plt.show()
