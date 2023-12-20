@@ -637,35 +637,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return normalized_uts
 
-    # def get_order_k_diff(self, k: int = 1) -> UnivariateTimeSeries:
-    #     """Calculate the differences between current observation and k previous observation for all observations.
-    #
-    #     Parameters
-    #     ----------
-    #     k: `int`
-    #         The k-th order difference to compute
-    #
-    #     Returns
-    #     -------
-    #     uts: `UnivariateTimeSeries`
-    #         An new instance of univariate time series with updated value column
-    #         name
-    #     """
-    #     assert k + 1 <= len(self), f"Order-{k} differences can't be applied" \
-    #         + f" to data with {len(self.data)} elements"
-    #
-    #     diff = np.diff(self.data[self.get_value_col_name].values, n=k)
-    #     index_col = self.data.index.name
-    #     # index_col = self.get_time_col_name
-    #
-    #     order_k_diff_uts = type(self)(
-    #         time_col=index_col,
-    #         time_values=self.data.index[:diff.shape[0]],
-    #         values_cols=f"Order-{k} Difference of {self.get_value_col_name}",
-    #         values=diff
-    #     )
-    #
-    #     return order_k_diff_uts
 
     def data_augment_with_differencing(self, k_difference_order: int) -> UnivariateTimeSeries:
         """Calculate the differences between current observation and k previous observation for all observations.
