@@ -397,41 +397,41 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         plt.show()
 
     def stationarity_test(self, series):
-            """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
+        """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
 
-            Null hypothesis: data has a unit root (data is non-stationary)
-            Alt hypothesis: data is stationary
+        Null hypothesis: data has a unit root (data is non-stationary)
+        Alt hypothesis: data is stationary
 
-            If we reject the Null, then the data is stationary.
-            In order to reject the null, we need our P-value to be less than our stat. sig. level
+        If we reject the Null, then the data is stationary.
+        In order to reject the null, we need our P-value to be less than our stat. sig. level
 
-            In order to use most models inclusing machine learning models, the data must be stationary.
+        In order to use most models inclusing machine learning models, the data must be stationary.
 
-            Parameters
-            ----------
-            series: `list` or `pd.DataFrame`
-                The list of observations
-    `
-            """
-            if type(series) == pd.DataFrame:
-                series = self.get_series(False)
+        Parameters
+        ----------
+        series: `list` or `pd.DataFrame`
+            The list of observations
+`
+        """
+        if type(series) == pd.DataFrame:
+            series = self.get_series(False)
 
-            adfuller_result = adfuller(series)
-            adfuller_p_value = adfuller_result[1]
-            significance_level = 0.05
+        adfuller_result = adfuller(series)
+        adfuller_p_value = adfuller_result[1]
+        significance_level = 0.05
 
-            if adfuller_p_value < significance_level:
-                print('ADF Statistic: %f' % adfuller_result[0])
-                print('p-value: %f' % adfuller_result[1], '<', significance_level, ', so reject null-hypothesis as the TS is stationary')
-                print('Critical Values:' )
-                for key, value in adfuller_result[4].items():
-                    print('\t%s: %.3f' % (key, value))
-            else:
-                print('ADF Statistic: %f' % adfuller_result[0])
-                print('p-value: %f' % adfuller_result[1], '>', significance_level, ', so accept the null-hypothesis as the TS is non-stationary')
-                print('Critical Values:' )
-                for key, value in adfuller_result[4].items():
-                    print('\t%s: %.3f' % (key, value))
+        if adfuller_p_value < significance_level:
+            print('ADF Statistic: %f' % adfuller_result[0])
+            print('p-value: %f' % adfuller_result[1], '<', significance_level, ', so reject null-hypothesis as the TS is stationary')
+            print('Critical Values:' )
+            for key, value in adfuller_result[4].items():
+                print('\t%s: %.3f' % (key, value))
+        else:
+            print('ADF Statistic: %f' % adfuller_result[0])
+            print('p-value: %f' % adfuller_result[1], '>', significance_level, ', so accept the null-hypothesis as the TS is non-stationary')
+            print('Critical Values:' )
+            for key, value in adfuller_result[4].items():
+                print('\t%s: %.3f' % (key, value))
 
     def plot_autocorrelation(self, max_lag: int = 1, plot_full: bool = False):
         """Plot the autocorrelation of the time series data.
@@ -549,6 +549,51 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return reversed_uts
 
+    def average_smoothing(self, sliding_window: int, with_plot=True) -> UnivariateTimeSeries:
+        """Data prep step to smooth original TS data
+
+        Parameters
+        ----------
+        sliding_window: `int`
+            The number of observations to group
+
+        """
+
+        rolling = self.data.rolling(window=sliding_window)
+        rolling_mean = rolling.mean().dropna()
+        rolling_mean_time_values = rolling_mean.index
+        rolling_mean_values = rolling_mean[self.get_value_col_name].values
+
+        if with_plot == True:
+            # NOTE: We're NOT using our plot func, thus can't update tick_skip
+            plt.figure(figsize=(20, 5))
+
+            plt.plot(self.get_as_df()[self.get_value_col_name], label='Original of Raw TS', linestyle='-')
+            plt.plot(rolling_mean[self.get_value_col_name], label='Average Smoothing of Raw TS', linestyle='-')
+
+            plt.xlabel(self.get_time_col_name)
+            plt.ylabel(self.get_value_col_name)
+
+            ax = plt.gca()
+            ax.xaxis.set_major_locator(ticker.MultipleLocator(base=15))
+
+            plt.xticks(rotation=45)
+            plt.legend()  # Display legend for clarity
+            plt.show()
+
+        average_smoothed_uts = type(self)(
+            time_col=self.get_time_col_name,
+            time_values=rolling_mean_time_values,
+            values_cols=self.get_value_col_name,
+            values=rolling_mean_values
+        )
+
+
+
+        return average_smoothed_uts
+
+
+
     def get_slice(self, start: int, end: int) -> UnivariateTimeSeries:
         """Get a slice of the univariate time series data.
 
@@ -665,6 +710,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         )
 
         return order_k_diff_uts
+
 
 
 class MultivariateTimeSeries(TimeSeriesMixin):
