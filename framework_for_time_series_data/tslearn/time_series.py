@@ -549,6 +549,34 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return reversed_uts
 
+    def data_augment_with_differencing(self, k_difference_order: int) -> UnivariateTimeSeries:
+        """Calculate the differences between current observation and k previous observation for all observations.
+
+        Parameters
+        ----------
+        k: `int`
+            The k-th order difference to compute
+
+        Returns
+        -------
+        uts: `UnivariateTimeSeries`
+            An new instance of univariate time series with updated value column
+            name
+        """
+        assert k_difference_order + 1 <= len(self), f"Order-{k_difference_order} differences can't be applied" \
+            + f" to data with {len(self.data)} elements"
+
+        returns = self.data[self.get_value_col_name].diff(k_difference_order).dropna().values.copy()
+
+        order_k_diff_uts = type(self)(
+            time_col=self.get_time_col_name,
+            time_values=self.data.index[1:],
+            values_cols=f"Order-{k_difference_order} Difference of {self.get_value_col_name}",
+            values=returns
+        )
+
+        return order_k_diff_uts
+
     def average_smoothing(self, sliding_window: int, with_plot=True) -> UnivariateTimeSeries:
         """Data prep step to smooth original TS data
 
@@ -587,8 +615,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             values_cols=self.get_value_col_name,
             values=rolling_mean_values
         )
-
-
 
         return average_smoothed_uts
 
@@ -681,36 +707,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         )
 
         return normalized_uts
-
-
-    def data_augment_with_differencing(self, k_difference_order: int) -> UnivariateTimeSeries:
-        """Calculate the differences between current observation and k previous observation for all observations.
-
-        Parameters
-        ----------
-        k: `int`
-            The k-th order difference to compute
-
-        Returns
-        -------
-        uts: `UnivariateTimeSeries`
-            An new instance of univariate time series with updated value column
-            name
-        """
-        assert k_difference_order + 1 <= len(self), f"Order-{k_difference_order} differences can't be applied" \
-            + f" to data with {len(self.data)} elements"
-
-        returns = self.data[self.get_value_col_name].diff(k_difference_order).dropna().values.copy()
-
-        order_k_diff_uts = type(self)(
-            time_col=self.get_time_col_name,
-            time_values=self.data.index[1:],
-            values_cols=f"Order-{k_difference_order} Difference of {self.get_value_col_name}",
-            values=returns
-        )
-
-        return order_k_diff_uts
-
 
 
 class MultivariateTimeSeries(TimeSeriesMixin):
