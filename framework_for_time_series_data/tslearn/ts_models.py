@@ -13,6 +13,8 @@ from dataclasses import dataclass
 
 from statsmodels.tsa.ar_model import AutoReg
 from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
 
 from constants import Number, TimeSeriesData
 from time_series import UnivariateTimeSeries
@@ -30,7 +32,7 @@ class Model(ABC):
     def augment_data(self):
         pass
 
-    @abstractmethod
+
     def predict(self):
         pass
 
@@ -76,7 +78,7 @@ class RandomWalk(Model):
 
         return predictions
 
-
+# Need to verify
 class PersistenceWalkForward(Model):
     def __name__(self):
         return "Persistence Walk Forward"
@@ -173,12 +175,12 @@ class MA(Model):
     def __name__(self):
         return "MA"
 
-    def train_model(self, train_data: np.array, test_error_terms: list) -> list:
+    def train_ma_model(self, df, train_data_df: pd.DataFrame, horizon: int, test_error_term: int, window: int):
         """Initial and train an moving average model.
 
         Parameters
         ----------
-        train_data: `np.array`
+        train_data: `pd.DataFrame`
             Data to train our autoregressive model on
         test_error_terms: `list`
             A list of error terms to pass to moving average model
@@ -189,20 +191,31 @@ class MA(Model):
             A list of trained moving average models with each differing by the moving average value we provide
 
         """
-        trained_ma_models = []
-        for test_error_terms_idx in range(len(test_error_terms)):
-            test_error_term = test_error_terms[test_error_terms_idx]
-            print("MA(", test_error_term, ")")
 
-            ma_model = ARIMA(train_data, order=(0, 0, test_error_terms))
-            trained_ma_model = ma_model.fit()
-            print(trained_ma_model.summary())
-            print()
-            trained_ma_models.append(trained_ma_model)
+        # trained_ma_models = []
+        # for test_error_terms_idx in range(len(test_error_terms)):
+        #     test_error_term = test_error_terms[test_error_terms_idx]
+        #     print("MA(", test_error_term, ")")
+        #
+        #     ma_model = ARIMA(train_data_df, order=(0, 0, test_error_term))
+        #     trained_ma_model = ma_model.fit()
+        #     print(trained_ma_model.summary())
+        #     print()
+        #     trained_ma_models.append(trained_ma_model)
+        # train_len = len(train_data_df)
+        total_len = train_data_df + horizon
+        pred_MA = []
 
-        return trained_ma_models
+        for i in range(train_data_df, total_len, window):
+            ma_model = SARIMAX(df[:i], order=(0,0,test_error_term))
+            trained_ma_model = ma_model.fit(disp=False)
+            predictions = trained_ma_model.get_prediction(0, i + window - 1)
+            oos_pred = predictions.predicted_mean.iloc[-window:]
+            pred_MA.extend(oos_pred)
 
-    def predict(self, trained_ma_models, go: int, stop: int) -> np.array:
+        return pred_MA
+
+    def predict_ma(self, trained_ma_models, train_data_df: pd.DataFrame, test_data_df: pd.DataFrame) -> list:
         """Make predictions with trained moving average models.
 
         Parameters
@@ -218,14 +231,25 @@ class MA(Model):
 
         """
 
+        start = len(train_data_df)
+        end = start + len(test_data_df) - 1
+
+        predictions = []
+
+        # model_prediction = trained_ma_model.predict(start=start, end=end, dynamic=False)
+        # predictions.append(model_prediction)
+
+        # return predictions
+
         predictions = []
         for trained_ma_models_idx in range(len(trained_ma_models)):
             trained_ma_model = trained_ma_models[trained_ma_models_idx]
             print("MA(", trained_ma_model, ")")
-            model_prediction = trained_ma_model.predict(start=go, end=stop, dynamic=False)
+            model_prediction = trained_ma_model.predict(start=start, end=end, dynamic=False)
             predictions.append(model_prediction)
 
         return predictions
+
 # Need to rebuild and verify
 class ARMA(Model):
     def __name__(self):
