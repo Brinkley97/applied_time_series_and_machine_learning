@@ -91,6 +91,7 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
     # if file_extension == ".csv":
     #     data_df = pd.read_csv(path_to_file)
 
+    # if data_csv = pd.read_csv(path_to_file)
     # update: if index is originally 0, change to 1. Maybe return both.
     if file_extension == ".npy":
         with open(path_to_file, 'rb') as f:
@@ -110,9 +111,20 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
         data_csv = pd.read_csv(path_to_file)
         columns = data_csv.columns
         series = data_csv.values
-        data_df = pd.DataFrame(series, columns=['Timestamp', 'Observations'])
-        # data_df['Timestamp'] = data_csv.columns[0]
-        data_df.set_index('Timestamp', inplace=True)
+
+        number_of_observations, number_of_columns = np.shape(data_csv)
+
+        if number_of_columns == 1:
+            data_df = pd.DataFrame(series, columns=['Observations'])
+            data_df['Timestamp'] = data_df.index
+            data_df.set_index('Timestamp', inplace=True)
+
+        elif number_of_columns == 2:
+
+            data_df = pd.DataFrame(series, columns=['Timestamp', 'Observations'])
+            # data_df['Timestamp'] = data_df.index
+            # data_df['Timestamp'] = data_csv.columns[0]
+            data_df.set_index('Timestamp', inplace=True)
 
         return UnivariateTimeSeries(
             time_col=data_df.index.name,
