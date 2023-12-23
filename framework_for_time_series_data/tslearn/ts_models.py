@@ -363,6 +363,8 @@ class EvaluationMetric:
             mse = mean_squared_error(true_labels, predictions)
             print('Test MSE: %.3f' % mse)
 
+        return mse
+
     # Need to rebuild and verify
     def eval_rmse(true_labels: np.array, predictions: np.array, per_element=True):
         """Calculate the root mean squared error"""
@@ -374,6 +376,8 @@ class EvaluationMetric:
         else:
             rmse = sqrt(mean_squared_error(true_labels, predictions))
             print('Test RMSE: %.3f' % rmse)
+
+        return rmse
 
 
     def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, per_element=True):
