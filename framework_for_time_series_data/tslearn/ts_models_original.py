@@ -175,39 +175,90 @@ class MA(Model):
     def __name__(self):
         return "MA"
 
-    def train_predict_ma_model(self, ts_df: pd.DataFrame, training_data_len: int, testing_data_len: int, window_len: int, test_error_term: int) -> list:
-        """Initial, train, and predict using the moving average model per https://github.com/marcopeix/TimeSeriesForecastingInPython/blob/master/CH04/CH04.ipynb
+    def train_ma_model(self, df, train_data_df: pd.DataFrame, horizon: int, test_error_term: int, window: int):
+        """Initial and train an moving average model.
 
         Parameters
         ----------
-        ts_df: `pd.DataFrame`
-            Data to train our moving average model
-        training_data_len: `pd.DataFrame`
-            Length of training data
-        testing_data_len: `pd.DataFrame`
-            Length of testing data
-        window_len: `int`
-            Length of sliding window for our moving average model
-        test_error_terms: `int`
-            A single error term to pass to our moving average model. Formally known as q for MA(q)
+        train_data: `pd.DataFrame`
+            Data to train our autoregressive model on
+        test_error_terms: `list`
+            A list of error terms to pass to moving average model
 
         Returns
         ------
-        predicted_forecasts: `list`
-            A list of predicted forecasts
+        trained_ma_models: `list`
+            A list of trained moving average models with each differing by the moving average value we provide
 
         """
-        predicted_forecasts = []
-        total_len = training_data_len + testing_data_len
 
-        for i in range(training_data_len, total_len, window):
-            ma_model = SARIMAX(ts_df[:i], order=(0,0,test_error_term))
+        # trained_ma_models = []
+        # for test_error_terms_idx in range(len(test_error_terms)):
+        #     test_error_term = test_error_terms[test_error_terms_idx]
+        #     print("MA(", test_error_term, ")")
+        #
+        #     ma_model = ARIMA(train_data_df, order=(0, 0, test_error_term))
+        #     trained_ma_model = ma_model.fit()
+        #     print(trained_ma_model.summary())
+        #     print()
+        #     trained_ma_models.append(trained_ma_model)
+        # train_len = len(train_data_df)
+        total_len = train_data_df + horizon
+        pred_MA = []
+
+        for i in range(train_data_df, total_len, window):
+            ma_model = SARIMAX(df[:i], order=(0,0,test_error_term))
             trained_ma_model = ma_model.fit(disp=False)
+            # book way
             predictions = trained_ma_model.get_prediction(0, i + window - 1)
             oos_pred = predictions.predicted_mean.iloc[-window:]
-            predicted_forecasts.extend(oos_pred)
+            pred_MA.extend(oos_pred)
 
-        return predicted_forecasts
+        return trained_ma_model, pred_MA
+
+    def predict_ma(self, trained_ma_model, train_data_df, horizon, window: int) -> list:
+        """Make predictions with trained moving average models.
+
+        Parameters
+        ----------
+        trained_ar_models: AR models
+            Trained autoregressive models
+
+
+        Returns
+        ------
+        predictions: `list`
+            A list of predictions for each moving average model with each differing by lag value
+
+        """
+
+        # model_prediction = trained_ma_model.predict(start=start, end=end, dynamic=False)
+        # predictions.append(model_prediction)
+
+        # return predictions
+
+        # start = len(train_data_df)
+        # end = start + len(test_data_df) - 1
+        #
+        # predictions = []
+
+        # predictions = []
+        # for trained_ma_models_idx in range(len(trained_ma_models)):
+        #     trained_ma_model = trained_ma_models[trained_ma_models_idx]
+        #     print("MA(", trained_ma_model, ")")
+        #     model_prediction = trained_ma_model.predict(start=start, end=end, dynamic=False)
+        #     predictions.append(model_prediction)
+        #
+        # return predictions
+        total_len = train_data_df + horizon
+        pred_MA = []
+
+        for i in range(train_data_df, total_len, window):
+            predictions = trained_ma_model.get_prediction(0, i + window - 1)
+            oos_pred = predictions.predicted_mean.iloc[-window:]
+            pred_MA.extend(oos_pred)
+
+        return pred_MA
 
 # Need to rebuild and verify
 class ARMA(Model):
