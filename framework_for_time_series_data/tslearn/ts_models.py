@@ -200,11 +200,12 @@ class MA(Model):
         predicted_forecasts = []
         total_len = training_data_len + testing_data_len
 
-        for i in range(training_data_len, total_len, window):
-            ma_model = SARIMAX(ts_df[:i], order=(0,0,test_error_term))
+        for i in range(training_data_len, total_len, window_len):
+
+            ma_model = SARIMAX(ts_df[:i], order=(0, 0, test_error_term))
             trained_ma_model = ma_model.fit(disp=False)
-            predictions = trained_ma_model.get_prediction(0, i + window - 1)
-            oos_pred = predictions.predicted_mean.iloc[-window:]
+            predictions = trained_ma_model.get_prediction(0, i + window_len - 1)
+            oos_pred = predictions.predicted_mean.iloc[-window_len:]
             predicted_forecasts.extend(oos_pred)
 
         return predicted_forecasts
