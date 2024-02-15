@@ -3,6 +3,7 @@ import matplotx
 import numpy as np
 import pandas as pd
 
+# import torch.nn as nn
 import matplotlib.pyplot as plt
 
 from abc import ABC
@@ -344,6 +345,56 @@ class ARIMA_model(Model):
 
         return predictions
 
+class MLP(Model):
+    def __name__(self):
+        return "MLP"
+
+    def augment_data(uts_observations, prior_observations: int, forecasting_step: int) -> pd.DataFrame:
+        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
+
+        Parameters:
+        uts_observations -- 1D np array (of UTS data to transform to SML data with size  b rows/length x 1 dimension)
+        prior_observations -- py int (of all observations before we get to where we want to start making the predictions)
+        forecasting_step -- py int (of how far out to forecast, 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps)
+
+        Return:
+        agg.values -- np array (of new sml data)
+        """
+
+        df = pd.DataFrame(uts_observations)
+        cols = list()
+
+        lag_col_names = []
+        count_lag = 0
+        # input sequence (t-n, ... t-1)
+        for prior_observation in range(prior_observations, 0, -1):
+            # print("prior_observation: ", prior_observation)
+            cols.append(df.shift(prior_observation))
+            new_col_name = "t-" + str(prior_observation)
+            # print(new_col_name)
+            lag_col_names.append(new_col_name)
+
+
+        # forecast sequence (t, t+1, ... t+n)
+        for i in range(0, forecasting_step):
+            cols.append(df.shift(-i))
+            new_col_name = "t"
+            # print(new_col_name)
+            lag_col_names.append(new_col_name)
+
+            # put it all together
+            uts_sml_df = pd.concat(cols, axis=1)
+            uts_sml_df.columns=[lag_col_names]
+            # drop rows with NaN values
+            uts_sml_df.dropna(inplace=True)
+
+        # colums to use to make prediction for last col
+        X_train = uts_sml_df.iloc[:, 0: -1]
+
+        # last column
+        y_train = uts_sml_df.iloc[:, [-1]]
+        return uts_sml_df, X_train, y_train
+
 @dataclass
 class EvaluationMetric:
     """Investigate the philosphy/design behind typing in python.
@@ -363,8 +414,6 @@ class EvaluationMetric:
             mse = mean_squared_error(true_labels, predictions)
             print('Test MSE: %.3f' % mse)
 
-        return mse
-
     # Need to rebuild and verify
     def eval_rmse(true_labels: np.array, predictions: np.array, per_element=True):
         """Calculate the root mean squared error"""
@@ -376,8 +425,6 @@ class EvaluationMetric:
         else:
             rmse = sqrt(mean_squared_error(true_labels, predictions))
             print('Test RMSE: %.3f' % rmse)
-
-        return rmse
 
 
     def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, per_element=True):
