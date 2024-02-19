@@ -4,17 +4,20 @@
 *.csv
 *.zip
 *.pyc
+*.MP4
 *.pkl
 *.log
 *.dat
 *.data
 *.xlsx
 *.names
-*.MP4
 *.DS_Store
+*.cpython-39
 *checkpoint.ipynb
 *.ipynb_checkpoints
 
 random_datasets/2-pre_code_analysis/diabetes_1994/data/
 framework_for_time_series_data/current/.ipynb_checkpoints/real_world_investigations-stock-tencent-returns-data-2-checkpoint.ipynb
 framework_for_time_series_data/done/.ipynb_checkpoints/real_world_investigations-stock-apple-returns-2011_to_2021-checkpoint.ipynb
+framework_for_time_series_data/tslearn/__pycache__/time_series.cpython-39.pyc
+framework_for_time_series_data/tslearn/__pycache__/ts_models.cpython-39.pyc
