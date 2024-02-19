@@ -6,7 +6,7 @@ import matplotlib.ticker as ticker
 
 from abc import ABC, abstractmethod
 # test for stationarity
-from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.stattools import adfuller, bds
 
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
@@ -80,7 +80,8 @@ class TimeSeriesFactory:
         values_cols = kwargs["values_cols"]
         time_values = kwargs["time_values"]
 
-        if len(values_cols) > 1:
+        # TODO: Should be strictly > 1. With >=, we're able to process a single stock without having to include another that matches the exact time frame
+        if len(values_cols) >= 1:
             len_values = [len(v) for v in values]
             equiv_dimensions = [len(time_values) == lv for lv in len_values]
             if all(equiv_dimensions):
@@ -154,11 +155,13 @@ class TimeSeriesMixin(ABC):
         return self.data.describe()
 
     # write code to support the returning of the specific date for the max, min, and range
-    def max_min_range(self, axis: int = 0) -> pd.Series:
+    def range_skewness_kurtosis(self, axis: int = 0) -> pd.Series:
         max_value = self.data.max(axis=axis)
         min_value = self.data.min(axis=axis)
-        range = max_value - min_value
-        return ({"Max": max_value, "Min": min_value, "Range": range})
+        range_value = max_value - min_value
+        skewness_value = self.skewness(axis=axis)
+        kurtosis_value = self.kurt(axis=axis)
+        return ({"Range": range_value, "Skewness": skewness_value, "Kurtosis": kurtosis_value})
 
     def mean(self, axis: int = 0):
         return self.data.mean(axis=axis)
@@ -168,6 +171,20 @@ class TimeSeriesMixin(ABC):
 
     def variance(self, axis: int = 0) -> pd.Series:
         return self.data.var(axis=axis)
+
+    def skewness(self, axis: int = 0) -> pd.Series:
+        """The distribution of the values in the time series will become asymmetric. 3rd moment (see (2))
+
+        Reference: (1) https://www.early-warning-signals.org/?page_id=117, (2) https://detraviousjbrinkley.notion.site/545-L7-Multi-variate-Normal-Distribution-Conditional-Distributions-Weak-and-Strict-Stationarity-9a56848d712c475b88cb0b6745e44bfb?pvs=4
+        """
+        return self.data.skew(axis=axis)
+
+    def kurt(self, axis: int = 0) -> pd.Series:
+        """Describes the shape of the distribution's tails (how heavy (become fatter due to the increased presence of rare values in the TS) or light they are). 4th moment (see (2))
+
+        Reference: (1) https://www.early-warning-signals.org/?page_id=117, (2) https://detraviousjbrinkley.notion.site/545-L7-Multi-variate-Normal-Distribution-Conditional-Distributions-Weak-and-Strict-Stationarity-9a56848d712c475b88cb0b6745e44bfb?pvs=4
+        """
+        return self.data.kurtosis(axis=axis)
 
     def __str__(self) -> str:
         columns = ", ".join(self.data.columns)
@@ -403,7 +420,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         Alt hypothesis: data is stationary
 
         If we reject the Null, then the data is stationary.
-        In order to reject the null, we need our P-value to be less than our stat. sig. level
+        In order to reject the null, we need our p-value to be less than our stat. sig. level
 
         In order to use most models inclusing machine learning models, the data must be stationary.
 
@@ -432,6 +449,44 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             print('Critical Values:' )
             for key, value in adfuller_result[4].items():
                 print('\t%s: %.3f' % (key, value))
+
+    def independence_test(self, series):
+        """Using the BDS test (after the initials of W. A. Brock, W. Dechert and J. Scheinkman), detect non-linear serial dependence in the TS by testing the null hypothesis that the remaining residuals are independent and identically distributed (i.i.d.).
+
+
+        When: After detrending (or first-differencing) [remove linear structure]
+
+        Null hypothesis: differenced data has no structure (differenced data is independent and i.i.d., so correlation is low and non-linear, non-stationary)
+        Alt hypothesis: differenced data has structure (differenced data is dependent so correlation is high and linearity and stationarity are prevelant)
+
+
+        If we reject the i.i.d. hypothesis, then the differenced data has some structure (thus dependent), which could include a hidden non-linearity (ie: NOT linear), hidden non-stationarity (ie: has some mean or variance), or other type of structure missed by detrending (or first-differencing) or model fitting.
+        In order to reject the null, we need our P-value to be...
+
+        Can help to avoid false detections of critical transitions due to model misspecification. Learn more on this.
+
+        Reference: https://www.early-warning-signals.org/?page_id=121
+
+        Parameters
+        ----------
+        series: `list` or `pd.DataFrame`
+            The list of observations
+`
+        """
+        if type(series) == pd.DataFrame:
+            series = self.get_series(False)
+
+        bds_result = bds(series)
+        bds_p_value = bds_result[1]
+        significance_level = 0.05
+
+        if bds_p_value < significance_level:
+            print('BDS Statistic: %f' % bds_result[0])
+            print('p-value: %f' % bds_result[1], '<', significance_level, ', so reject null-hypothesis as the differenced TS is independent and i.i.d.')
+
+        else:
+            print('BDS Statistic: %f' % bds_result[0])
+            print('p-value: %f' % bds_result[1], '>', significance_level, ', so accept the null-hypothesis as the differenced TS is dependent')
 
     def plot_autocorrelation(self, max_lag: int = 1, plot_full: bool = False):
         """Plot the autocorrelation of the time series data.
