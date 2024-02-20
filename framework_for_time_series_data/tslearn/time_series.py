@@ -175,6 +175,10 @@ class TimeSeriesMixin(ABC):
     def skewness(self, axis: int = 0) -> pd.Series:
         """The distribution of the values in the time series will become asymmetric. 3rd moment (see (2))
 
+        If skewness is less than -1 or greater than 1, the distribution is highly skewed.
+        If skewness is between -1 and -0.5 or between 0.5 and 1, the distribution is moderately skewed.
+        If skewness is between -0.5 and 0.5, the distribution is approximately symmetric.
+
         Reference: (1) https://www.early-warning-signals.org/?page_id=117, (2) https://detraviousjbrinkley.notion.site/545-L7-Multi-variate-Normal-Distribution-Conditional-Distributions-Weak-and-Strict-Stationarity-9a56848d712c475b88cb0b6745e44bfb?pvs=4
         """
         return self.data.skew(axis=axis)
@@ -199,7 +203,8 @@ class TimeSeriesMixin(ABC):
     def get_train_validation_test_split(
         self,
         train_size: float = 0.6,
-        validation_size: float = 0.2
+        validation_size: float = 0.2,
+        shuffle: bool = False
     ) -> Tuple[TimeSeries, ...]:
         """Get the train, validation, and test splits of the time series data.
 
@@ -240,10 +245,11 @@ class TimeSeriesMixin(ABC):
     ) -> Tuple[TimeSeries, ...]:
         pass
 
-    def get_historical_data(self):
-        return len(self.get_series()), self.get_series()
+    def get_historical_data(self, forecasting_step) -> np.array:
+        historical_data = len(self.data) - forecasting_step
+        return self.data[:historical_data]
 
-    def get_true_label_data(self, time_series: np.array) -> np.array:
+    def get_true_label_data(self, forecasting_step) -> np.array:
         """Split to only get the true label time series data.
 
         Parameters
@@ -256,7 +262,7 @@ class TimeSeriesMixin(ABC):
 
         """
 
-        return time_series[-1:]
+        return self.data[-forecasting_step:]
 
 
 class UnivariateTimeSeries(TimeSeriesMixin):
