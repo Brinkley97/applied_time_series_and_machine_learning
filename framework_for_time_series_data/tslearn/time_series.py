@@ -7,6 +7,7 @@ import matplotlib.ticker as ticker
 from abc import ABC, abstractmethod
 # test for stationarity
 from statsmodels.tsa.stattools import adfuller, bds
+from sklearn.model_selection import train_test_split
 
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
@@ -143,7 +144,6 @@ class TimeSeriesMixin(ABC):
 
         return col_names, col_values
 
-
     def get_statistics(self) -> pd.DataFrame:
         """Get the statistics of the univariate time series data.
 
@@ -153,7 +153,7 @@ class TimeSeriesMixin(ABC):
             The statistics of the univariate time series data
         """
         return self.data.describe()
-
+    
     # write code to support the returning of the specific date for the max, min, and range
     def range_skewness_kurtosis(self, axis: int = 0) -> pd.Series:
         max_value = self.data.max(axis=axis)
@@ -200,50 +200,54 @@ class TimeSeriesMixin(ABC):
     def __len__(self) -> int:
         return self.data.shape[0]
 
-    def get_train_validation_test_split(
-        self,
-        train_size: float = 0.6,
-        validation_size: float = 0.2,
-        shuffle: bool = False
-    ) -> Tuple[TimeSeries, ...]:
-        """Get the train, validation, and test splits of the time series data.
+    # def get_train_validation_test_split_darian(
+    #     self,
+    #     train_size: float = 0.8,
+    #     validation_size: float = 0.2,
+    #     shuffle: bool = False
+    # ) -> Tuple[TimeSeries, ...]:
+    #     """Get the train, validation, and test splits of the time series data.
 
-        Parameters
-        ----------
-        train_size: `float`
-            The size of the training split
-        validation_size: `float`
-            The size of the validation split
-        test_size: `float`
-            The size of the test split
+    #     Parameters
+    #     ----------
+    #     train_size: `float`
+    #         The size of the training split
+    #     validation_size: `float`
+    #         The size of the validation split
+    #     test_size: `float`
+    #         The size of the test split
 
-        Returns
-        -------
-        train: `TimeSeries`
-            The training split
-        validation: `TimeSeries`
-            The validation split
-        test: `TimeSeries`
-            The test split
-        """
-        train_size = int(train_size * len(self))
-        validation_size = int(validation_size * len(self))
+    #     Returns
+    #     -------
+    #     train: `TimeSeries`
+    #         The training split
+    #     validation: `TimeSeries`
+    #         The validation split
+    #     test: `TimeSeries`
+    #         The test split
+    #     """
+    #     train_size = int(train_size * len(self))
+    #     validation_size = int(validation_size * len(self))
 
-        train_set, validation_set, test_set = self.\
-            _get_train_validation_test_split(
-                train_size=train_size,
-                validation_size=validation_size,
-        )
+    #     train_set, validation_set, test_set = self.\
+    #         _get_train_validation_test_split(
+    #             train_size=train_size,
+    #             validation_size=validation_size,
+    #     )
 
-        return (train_set, validation_set, test_set)
+    #     return (train_set, validation_set, test_set)
 
-    @abstractmethod
-    def _get_train_validation_test_split(
-        self,
-        train_size: int,
-        validation_size: int
-    ) -> Tuple[TimeSeries, ...]:
-        pass
+    # @abstractmethod
+    # def _get_train_validation_test_split_darian(
+    #     self,
+    #     train_size: int,
+    #     validation_size: int
+    # ) -> Tuple[TimeSeries, ...]:
+    #     pass
+
+    def get_train_validation_test_split(X, y, test_size: 0.2, shuffle: bool =False):
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=shuffle)
+        return X_train, X_test, y_train, y_test
 
     def get_historical_data(self, forecasting_step) -> np.array:
         historical_data = len(self.data) - forecasting_step
@@ -281,7 +285,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
     def get_value_col_name(self) -> str:
         """Get the name of the value column."""
         return self.data.columns[0]
-
 
     def get_as_df(self) -> pd.DataFrame:
         """Get the name and data."""
@@ -575,7 +578,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         # Display the plot
         plt.show()
 
-
     def data_augment_for_returns(self) -> UnivariateTimeSeries:
         """Calculate the percent change."""
         returns = self.data[self.get_value_col_name].pct_change().dropna().values.copy()
@@ -679,8 +681,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return average_smoothed_uts
 
-
-
     def get_slice(self, start: int, end: int) -> UnivariateTimeSeries:
         """Get a slice of the univariate time series data.
 
@@ -707,39 +707,85 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return slice_uts
 
-    def _get_train_validation_test_split(
-        self,
-        train_size: int,
-        validation_size: int,
-    ) -> Tuple[UnivariateTimeSeries, ...]:
-        """Get the train, validation, and test splits of the time series data.
-
+    def split_sequence(self, forecasting_step: int, prior_observations: int):
+        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp. Use the 
+    
         Parameters
         ----------
-        train_size: `int`
-            The size of the training split
-        validation_size: `int`
-            The size of the validation split
-
-        Returns
-        -------
-        train: `UnivariateTimeSeries`
-            The training split
-        validation: `UnivariateTimeSeries`
-            The validation split
-        test: `UnivariateTimeSeries`
-            The test split
+        forecasting_step: `int`
+            How far out to forecast (ie: 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps)
+        
+        prior_observations: `int`
+            The number of input observations to use to make our forecast
         """
-        train = self.get_slice(0, train_size)
-        validation = self.get_slice(train_size, train_size + validation_size)
-        test = self.get_slice(train_size + validation_size, len(self))
+        df = pd.DataFrame(self.get_series())
+        cols = list()
+        
+        lag_col_names = []
 
-        # total = train_size + validation_size
-        # print(train_size, validation_size, total)
-        # assert total == 100, "Invalid. Train and validation summed must be less than 100."
-        # train = self[0: ]
+        # input sequence (t-n, ... t-1)
+        for prior_observation in range(prior_observations, 0, -1):
+            cols.append(df.shift(prior_observation))
+            new_col_name = "t-" + str(prior_observation)
+            lag_col_names.append(new_col_name)
+            
+        # forecast sequence (t, t+1, ... t+n)
+        for i in range(0, forecasting_step):
+            cols.append(df.shift(-i))
+            
+            new_col_name = "t" 
+            if forecasting_step == 1:
+                lag_col_names.append(new_col_name)
+            
+            else:
+                if i == 0:
+                    lag_col_names.append(new_col_name)
+                else:
+                    new_col_name = "t+" + str(i)
+                    lag_col_names.append(new_col_name)
+            
+            # put it all together
+            uts_sml_df = pd.concat(cols, axis=1) 
+            uts_sml_df.columns=[lag_col_names]
+            # drop rows with NaN values
+            uts_sml_df.dropna(inplace=True)
+        
+        return uts_sml_df
 
-        return (train, validation, test)
+
+    # def get_train_validation_test_split_darian(
+    #     self,
+    #     train_size: int,
+    #     validation_size: int,
+    # ) -> Tuple[UnivariateTimeSeries, ...]:
+    #     """Get the train, validation, and test splits of the time series data.
+
+    #     Parameters
+    #     ----------
+    #     train_size: `int`
+    #         The size of the training split
+    #     validation_size: `int`
+    #         The size of the validation split
+
+    #     Returns
+    #     -------
+    #     train: `UnivariateTimeSeries`
+    #         The training split
+    #     validation: `UnivariateTimeSeries`
+    #         The validation split
+    #     test: `UnivariateTimeSeries`
+    #         The test split
+    #     """
+    #     train = self.get_slice(0, train_size)
+    #     validation = self.get_slice(train_size, train_size + validation_size)
+    #     test = self.get_slice(train_size + validation_size, len(self))
+
+    #     # total = train_size + validation_size
+    #     # print(train_size, validation_size, total)
+    #     # assert total == 100, "Invalid. Train and validation summed must be less than 100."
+    #     # train = self[0: ]
+
+    #     return (train, validation, test)
 
     # TODO: This should support start and end values that correspond to the
     # type of the time index.
