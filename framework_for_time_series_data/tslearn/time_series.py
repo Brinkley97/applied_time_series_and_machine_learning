@@ -738,6 +738,78 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         else:
             print("{both_train_test} is an invalid parameter")
 
+    def get_slice_with_percentage(self, train_percent: float, both_train_test: bool, train_or_test: str) -> UnivariateTimeSeries:
+        """Get a slice of the univariate time series data. Use for TS Models
+
+        Parameters
+        ----------
+        train_percent: `float`
+            Amount to use for training data
+        
+        train_or_test: `str`
+            Specify if we want to split for train or test
+
+        both_train_test: `bool`
+            If False, call twice, separately for train and test
+            If True, call once, together for train and test
+
+        Returns
+        -------
+        if both_train_test == False
+            sliced_uts: `UnivariateTimeSeries`
+                A new instance of univariate time series with the sliced data
+
+        if both_train_test == True
+            train_sliced_uts, test_slice_uts: `UnivariateTimeSeries`
+                A new instance of univariate time series with the sliced data
+            
+        """
+        N = len(self.get_series())
+        train_size = int(N * train_percent)
+
+        if both_train_test == False:
+            if train_or_test == 'Train':
+                print(f"{train_or_test} size is", train_size)
+                train_sliced_uts = type(self)(
+                    time_col=self.get_time_col_name,
+                    time_values=self.data.index[:train_size],
+                    values_cols=f"{self}[{1}:{train_size}]",
+                    values=self.data[self.get_value_col_name].values[:train_size].copy()
+                )
+
+                return train_sliced_uts
+        
+            elif train_or_test == 'Test':
+                test_size = N - train_size
+                print(f"{train_or_test} size is", test_size)
+                test_sliced_uts = type(self)(
+                    time_col=self.get_time_col_name,
+                    time_values=self.data.index[test_size:],
+                    values_cols=f"{self}[{test_size}:{N}]",
+                    values=self.data[self.get_value_col_name].values[test_size:N].copy()
+                )
+
+                return test_sliced_uts
+        
+        elif both_train_test == True:
+            train_sliced_uts = type(self)(
+                time_col=self.get_time_col_name,
+                time_values=self.data.index[:train_size],
+                values_cols=f"{self}[{1}:{train_size}]",
+                values=self.data[self.get_value_col_name].values[:train_size].copy()
+            )
+
+            test_sliced_uts = type(self)(
+                time_col=self.get_time_col_name,
+                time_values=self.data.index[train_size:N],
+                values_cols=f"{self}[{train_size}:{N}]",
+                values=self.data[self.get_value_col_name].values[train_size:N].copy()
+            )
+
+            return train_sliced_uts, test_sliced_uts
+        else:
+            print("{both_train_test} is an invalid parameter")
+
     def split_sequence(self, forecasting_step: int, prior_observations: int):
         """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp. Use for ML models.
     
