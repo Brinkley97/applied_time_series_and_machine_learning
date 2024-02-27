@@ -244,7 +244,7 @@ class TimeSeriesMixin(ABC):
     #     validation_size: int
     # ) -> Tuple[TimeSeries, ...]:
     #     pass
-
+    
     def get_train_validation_test_split(X, y, test_size: 0.2, shuffle: bool =False):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=shuffle)
         return X_train, X_test, y_train, y_test
@@ -681,8 +681,10 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return average_smoothed_uts
 
-    def get_slice(self, start: int, end: int) -> UnivariateTimeSeries:
-        """Get a slice of the univariate time series data.
+    def get_slice(self, start: int, end: int, both_train_test: bool) -> UnivariateTimeSeries:
+        """Get a slice of the univariate time series data. Use for TS Models
+
+        Verifying with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
 
         Parameters
         ----------
@@ -690,25 +692,54 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             The index to start the slice
         end: `int`
             The index to end the slice
+        both_train_test: `bool`
+            If False, call twice, separately for train and test
+            If True, call once, together for train and test
 
         Returns
         -------
-        uts: `UnivariateTimeSeries`
-            A new instance of univariate time series with the sliced data
-        """
-        # print(type(self.data[self.get_value_col_name].values[start:end].copy()), self.data[self.get_value_col_name].values[start:end].copy())
-        print(start, end)
-        slice_uts = type(self)(
-            time_col=self.get_time_col_name,
-            time_values=self.data.index[start:end],
-            values_cols=f"{self}[{start}:{end}]",
-            values=self.data[self.get_value_col_name].values[start:end].copy()
-        )
+        if both_train_test == False
+            sliced_uts: `UnivariateTimeSeries`
+                A new instance of univariate time series with the sliced data
 
-        return slice_uts
+        if both_train_test == True
+            train_sliced_uts, test_slice_uts: `UnivariateTimeSeries`
+                A new instance of univariate time series with the sliced data
+            
+        """
+        print(start, end)
+        if both_train_test == False:
+            sliced_uts = type(self)(
+                time_col=self.get_time_col_name,
+                time_values=self.data.index[start:end],
+                values_cols=f"{self}[{start}:{end}]",
+                values=self.data[self.get_value_col_name].values[start:end].copy()
+            )
+
+            return sliced_uts
+        
+        elif both_train_test == True:
+            N = len(self.get_series())
+            train_sliced_uts = type(self)(
+                time_col=self.get_time_col_name,
+                time_values=self.data.index[start:end],
+                values_cols=f"{self}[{start}:{end}]",
+                values=self.data[self.get_value_col_name].values[start:end].copy()
+            )
+
+            test_sliced_uts = type(self)(
+                time_col=self.get_time_col_name,
+                time_values=self.data.index[end:N],
+                values_cols=f"{self}[{start}:{end}]",
+                values=self.data[self.get_value_col_name].values[end:N].copy()
+            )
+
+            return train_sliced_uts, test_sliced_uts
+        else:
+            print("{both_train_test} is an invalid parameter")
 
     def split_sequence(self, forecasting_step: int, prior_observations: int):
-        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp. Use the 
+        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp. Use for ML models.
     
         Parameters
         ----------
