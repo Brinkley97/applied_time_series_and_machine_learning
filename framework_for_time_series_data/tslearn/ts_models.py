@@ -110,6 +110,8 @@ class PersistenceWalkForward(Model):
 class AR(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive model
 
+    Verify with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+
     Methods
     -------
     train_ar_model(train_data_df: pd.DataFrame, threshold_lags: list)
@@ -124,6 +126,8 @@ class AR(Model):
     def train_ar_model(self, train_data_df: pd.DataFrame, threshold_lags: list):
         """Initial and train an autoregressive model.
 
+        Verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+
         Parameters
         ----------
         train_data_df: `pd.DataFrame`
@@ -134,7 +138,7 @@ class AR(Model):
         Returns
         ------
         trained_ar_model: `statsmodel AutoReg model`
-            A list of trained autoregressive models with each differing by lag value
+            A single trained autoregressive models with each differing by lag value
 
         """
 
@@ -143,15 +147,17 @@ class AR(Model):
 
         return trained_ar_model
 
-    def predict(self, trained_ar_model, train_data_df: pd.DataFrame, test_data_df: pd.DataFrame) -> list:
+    def predict(self, trained_ar_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame) -> np.array:
         """Make predictions with trained autoregressive models.
+
+        Verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
 
         Parameters
         ----------
         trained_ar_models: AR models
             Trained autoregressive models
 
-        train_data_df: `pd.DataFrame`
+        historical_data_df: `pd.DataFrame`
             The data we used to train our model(s)
 
         test_data_df: `pd.DataFrame`
@@ -159,20 +165,26 @@ class AR(Model):
 
         Returns
         ------
-        predictions: `list`
+        model_predictions: `np.array`
             A list of predictions for each autoregressive model with each differing by lag value
 
         """
-        # This is correct. Example: Days 1, 2, 3, ..., 10. We want to predict day 8, 9, and 10. We train on days 1, 2, ..., 7. We test on days 8, 9, and 10. Start is length of historical data, here 7. End is 7 + 3 - 1 = 9. So, our model will make predictions from 7, 8, 9?
-        start = len(train_data_df)
-        end = start + len(test_data_df) - 1
+        # Example: Days 1 - 30 with forecast of 7 days
+        historical_dates = list(historical_data_df.index) # 1 - 23 
+        y_true_dates = list(y_true_predictions_df.index) # 24 - 30
+        print(f"Predictions for dates {y_true_dates}")
 
-        predictions = []
+        start = len(historical_dates) # 23
+        end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
 
-        model_prediction = trained_ar_model.predict(start=start, end=end, dynamic=False)
-        predictions.append(model_prediction)
+        # verify y_true_dates
+        all_dates = historical_dates + y_true_dates # 1 - 30
+        prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
+        # print(f"Predictions for dates {prediction_dates}")
 
-        return predictions
+        model_predictions = trained_ar_model.predict(start=start, end=end, dynamic=False)
+
+        return model_predictions
 
 # Need to rebuild and verify
 class MA(Model):
@@ -238,7 +250,7 @@ class ARMA(Model):
 
         """
         if len(test_lags) != len(test_error_terms):
-            raise ValueError("Lengths of test_lags and test_error_terms must be the same")
+            raise ValueError("Lengths of test_lags and test_error_terms must be the same. Will update later such that they can be different.")
 
         test_lags_and_error_terms = len(test_lags)
         trained_arma_models = []
@@ -247,22 +259,20 @@ class ARMA(Model):
             test_error_term = test_error_terms[test_lags_and_error_terms_idx]
             print("ARMA(", test_lag_term, 0, test_error_term, ")")
 
-            arma_model = ARIMA(train_data, order=(test_lag_term, 1, test_error_terms), trend="n")
+            arma_model = ARIMA(train_data, order=(test_lag_term, 0, test_error_terms), trend="n")
             trained_arma_model = arma_model.fit()
             print(trained_arma_model.summary())
             trained_arma_models.append(trained_arma_model)
 
         return trained_arma_models
 
-    def predict(self, trained_arma_models, len_historical_data: np.array, train: np.array, test: np.array) -> np.array:
+    def predict(self, trained_arma_models, train: np.array, test: np.array) -> np.array:
         """Make predictions with trained autoregressive moving average models.
 
         Parameters
         ----------
         trained_arma_models: ARMA models
             Trained autoregressive moving average models
-        len_historical_data: `np.array`
-            The length of our historical data
         train: `np.array`
             The training data
         test: `np.array`
@@ -274,7 +284,7 @@ class ARMA(Model):
             A list of predictions for each autoregressive moving average model with each differing by lag value
 
         """
-
+        len_historical_data = len(train)
         predictions = []
         for trained_arma_models_idx in range(len(trained_arma_models)):
             trained_arma_model = trained_arma_models[trained_arma_models_idx]
@@ -318,7 +328,7 @@ class ARIMA_model(Model):
         return trained_arima_models
 
     def predict(self, trained_arima_models, go: int, stop: int) -> np.array:
-        """Make predictions with trained autoregressive integrated moving average models.
+        """Make predictions with trained autoregressive integrated moving average models on the .
 
         Parameters
         ----------
@@ -544,3 +554,20 @@ class EvaluationMetric:
 
         matplotx.line_labels()
         plt.show()
+
+    def plot_predictions(true_labels: np.array, predictions: np.array, test_lags: list):
+        """Plots the forecast of each model respectively on the same plot."""
+        for predictions_idx in range(len(predictions)):
+            prediction = predictions[predictions_idx]
+            lag = test_lags[predictions_idx]
+
+            plt.figure(figsize=(20, 4))
+            plt.xlabel("Observations")
+            plt.ylabel("Values")
+            plt.title(f"Model {predictions_idx + 1} with Lag {lag}")
+
+            plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=1)
+            plt.plot(prediction, color='red', label='Predicted Forecasts', linewidth=2)
+            
+            matplotx.line_labels()
+            plt.show()
