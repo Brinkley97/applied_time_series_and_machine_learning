@@ -432,9 +432,9 @@ class EvaluationMetric:
         
         Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
         """
-        if per_element == True:
+        true_predictions = true_predictions_df.values
 
-            true_predictions = true_predictions_df.values
+        if per_element == True:
             for predictions_idx in range(len(model_predictions)):
                 prediction = model_predictions[predictions_idx]
                 true_prediction = true_predictions[predictions_idx]
@@ -450,9 +450,9 @@ class EvaluationMetric:
         
         Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
         """
-        if per_element == True:
+        true_predictions = true_predictions_df.values
 
-            true_predictions = true_predictions_df.values
+        if per_element == True:
             for predictions_idx in range(len(model_predictions)):
                 prediction = model_predictions[predictions_idx]
                 true_prediction = true_predictions[predictions_idx]
@@ -463,6 +463,7 @@ class EvaluationMetric:
             mse = sqrt(mean_squared_error(true_predictions, model_predictions))
             print('Test RMSE: %.3f' % mse)
 
+    # Need to rebuild and verify
     def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, per_element=True):
         """Plots the forecast of each model respectively on the same plot.
 
@@ -566,19 +567,21 @@ class EvaluationMetric:
         matplotx.line_labels()
         plt.show()
 
-    def plot_predictions(true_labels: np.array, predictions: np.array, test_lags: list):
-        """Plots the forecast of each model respectively on the same plot."""
-        for predictions_idx in range(len(predictions)):
-            prediction = predictions[predictions_idx]
-            lag = test_lags[predictions_idx]
+    
+    def plot_predictions(true_predictions_df: pd.DataFrame, model_predictions: np.array, lag: int):
+        """Plots the in-sample prediction of each model respectively on the same plot.
+        
+        Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+        """
 
-            plt.figure(figsize=(20, 4))
-            plt.xlabel("Observations")
-            plt.ylabel("Values")
-            plt.title(f"Model {predictions_idx + 1} with Lag {lag}")
+        true_predictions = true_predictions_df.values
 
-            plt.plot(true_labels, color='blue', label='Actual Forecasts', linewidth=1)
-            plt.plot(prediction, color='red', label='Predicted Forecasts', linewidth=2)
-            
-            matplotx.line_labels()
-            plt.show()
+        plt.figure(figsize=(20, 4))
+        plt.xlabel("Observations")
+        plt.ylabel("Values")
+
+        plt.plot(true_predictions, color='blue', label='Actual Forecasts', linewidth=1)
+        plt.plot(model_predictions, color='red', label='Predicted Forecasts', linewidth=2)
+        
+        matplotx.line_labels()
+        plt.show()
