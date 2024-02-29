@@ -427,30 +427,41 @@ class EvaluationMetric:
     https://realpython.com/python-type-checking/
     """
     # Need to rebuild and verify
-    def eval_mse(true_labels: pd.DataFrame, predictions: list, per_element=True):
-        """Calculate the mean squared error"""
+    def eval_mse(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
+        """Calculate the mean squared error
+        
+        Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+        """
         if per_element == True:
 
-            for predictions_idx in range(len(predictions)):
-                prediction = predictions[predictions_idx]
-                mse = mean_squared_error(true_labels, prediction)
+            true_predictions = true_predictions_df.values
+            for predictions_idx in range(len(model_predictions)):
+                prediction = model_predictions[predictions_idx]
+                true_prediction = true_predictions[predictions_idx]
+                print('predicted=%f, expected=%f' % (prediction, true_prediction))
+                mse = mean_squared_error(true_predictions, model_predictions)
                 print('Test MSE: %.3f' % mse)
         else:
-            mse = mean_squared_error(true_labels, predictions)
+            mse = mean_squared_error(true_predictions, model_predictions)
             print('Test MSE: %.3f' % mse)
 
-    # Need to rebuild and verify
-    def eval_rmse(true_labels: np.array, predictions: np.array, per_element=True):
-        """Calculate the root mean squared error"""
+    def eval_rmse(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
+        """Calculate the root mean squared error
+        
+        Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+        """
         if per_element == True:
-            for predictions_idx in range(len(predictions)):
-                prediction = predictions[predictions_idx]
-                rmse = sqrt(mean_squared_error(true_labels, prediction))
-                print('Test RMSE: %.3f' % rmse)
-        else:
-            rmse = sqrt(mean_squared_error(true_labels, predictions))
-            print('Test RMSE: %.3f' % rmse)
 
+            true_predictions = true_predictions_df.values
+            for predictions_idx in range(len(model_predictions)):
+                prediction = model_predictions[predictions_idx]
+                true_prediction = true_predictions[predictions_idx]
+                print('predicted=%f, expected=%f' % (prediction, true_prediction))
+                mse = sqrt(mean_squared_error(true_predictions, model_predictions))
+                print('Test RMSE: %.3f' % mse)
+        else:
+            mse = sqrt(mean_squared_error(true_predictions, model_predictions))
+            print('Test RMSE: %.3f' % mse)
 
     def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, per_element=True):
         """Plots the forecast of each model respectively on the same plot.
