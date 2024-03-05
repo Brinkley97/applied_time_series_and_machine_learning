@@ -197,17 +197,14 @@ class AR(Model):
             for t in range(len(test)):
                 length = len(history)
                 lag = [history[i] for i in range(length - lag_to_test, length)]
-                print(lag)
                 coef = trained_ar_model.params
                 
                 yhat = coef[0]
                 for d in range(lag_to_test):
-                    # print(d + 1, lag_to_test-d-1)
                     yhat += coef[d+1] * lag[lag_to_test-d-1]
                     obs = test[t]
                 predictions.append(yhat)
                 history.append(obs)
-                # np.append(historical_values, obs)
                 print('predicted=%f, expected=%f' % (yhat, obs))
 
             return predictions
