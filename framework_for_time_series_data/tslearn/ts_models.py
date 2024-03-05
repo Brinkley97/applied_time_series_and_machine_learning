@@ -147,7 +147,7 @@ class AR(Model):
 
         return trained_ar_model
 
-    def predict(self, trained_ar_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame) -> np.array:
+    def predict(self, trained_ar_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
         """Make predictions with trained autoregressive models.
 
         Verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
@@ -169,22 +169,50 @@ class AR(Model):
             A list of predictions for each autoregressive model with each differing by lag value
 
         """
-        # Example: Days 1 - 30 with forecast of 7 days
-        historical_dates = list(historical_data_df.index) # 1 - 23 
-        y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-        print(f"Predictions for dates {y_true_dates}")
+        if retrain == False:
+            # Example: Days 1 - 30 with forecast of 7 days
+            historical_dates = list(historical_data_df.index) # 1 - 23 
+            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
+            print(f"Predictions for dates {y_true_dates}")
 
-        start = len(historical_dates) # 23
-        end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
+            start = len(historical_dates) # 23
+            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
 
-        # verify y_true_dates
-        all_dates = historical_dates + y_true_dates # 1 - 30
-        prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
-        # print(f"Predictions for dates {prediction_dates}")
+            # verify y_true_dates
+            all_dates = historical_dates + y_true_dates # 1 - 30
+            prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
+            # print(f"Predictions for dates {prediction_dates}")
 
-        model_predictions = trained_ar_model.predict(start=start, end=end, dynamic=False)
+            model_predictions = trained_ar_model.predict(start=start, end=end, dynamic=False)
+            return model_predictions
+        
+        elif retrain == True:
+            start_retrain_idx = len(historical_data_df) - lag_to_test
+            history = historical_data_df[start_retrain_idx:].values.tolist()
+            for i in range(len(history)):
+                history[i] = np.array(history[i])
+            test = y_true_predictions_df.values
 
-        return model_predictions
+            predictions = list()
+            for t in range(len(test)):
+                length = len(history)
+                lag = [history[i] for i in range(length - lag_to_test, length)]
+                print(lag)
+                coef = trained_ar_model.params
+                
+                yhat = coef[0]
+                for d in range(lag_to_test):
+                    # print(d + 1, lag_to_test-d-1)
+                    yhat += coef[d+1] * lag[lag_to_test-d-1]
+                    obs = test[t]
+                predictions.append(yhat)
+                history.append(obs)
+                # np.append(historical_values, obs)
+                print('predicted=%f, expected=%f' % (yhat, obs))
+
+            return predictions
+        else:
+            print(f"{retrain} is NOT a valid name for retrian")
 
 # Need to rebuild and verify
 class MA(Model):
