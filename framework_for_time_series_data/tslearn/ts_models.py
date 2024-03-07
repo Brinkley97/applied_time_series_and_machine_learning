@@ -252,7 +252,7 @@ class MA(Model):
         return predicted_forecasts
 
 # Need to rebuild and verify
-class ARMA(Model):
+class ARMA_old(Model):
     def __name__(self):
         return "ARMA"
 
@@ -318,6 +318,106 @@ class ARMA(Model):
             predictions.append(model_prediction)
 
         return predictions
+
+class ARMA(Model):
+    """A class used to initialize, train, and forecast predictions with our autoregressive model
+
+    Modifying AR code bc we verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+
+    Methods
+    -------
+    train_arma_model(train_data_df: pd.DataFrame, threshold_lags: list, threshold_lags: list)
+        Initial and train an autoregressive moving average model
+    predict(trained_arma_model, train_data_df: pd.DataFrame, test_data_df: pd.DataFrame)
+        Make predictions with trained autoregressive moving average model
+
+    """
+    def __name__(self):
+        return "ARMA"
+
+    def train_arma_model(self, train_data_df: pd.DataFrame, lag_p: int, error_q: int):
+        """Initial and train an autoregressive model.
+
+        Parameters
+        ----------
+        train_data_df: `pd.DataFrame`
+            Data to train our autoregressive model on
+        threshold_lags: `list`
+            A list of lag values that are over a threshold to pass to autoregressive model
+
+        Returns
+        ------
+        trained_ar_model: `statsmodel AutoReg model`
+            A single trained autoregressive models with each differing by lag value
+
+        """
+
+        arma_model = ARIMA(train_data_df, order=(lag_p, 0, error_q), trend="n")
+        trained_arma_model = arma_model.fit()
+
+        return trained_arma_model
+
+    def predict(self, trained_arma_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
+        """Make predictions with trained autoregressive moving average models.
+
+        Parameters
+        ----------
+        trained_ar_models: AR models
+            Trained autoregressive models
+
+        historical_data_df: `pd.DataFrame`
+            The data we used to train our model(s)
+
+        test_data_df: `pd.DataFrame`
+            The actual forecasts
+
+        Returns
+        -------
+        model_predictions: `np.array`
+            A list of predictions for each autoregressive model with each differing by lag value
+
+        """
+        if retrain == False:
+            # Example: Days 1 - 30 with forecast of 7 days
+            historical_dates = list(historical_data_df.index) # 1 - 23 
+            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
+            print(f"Predictions for dates {y_true_dates}")
+
+            start = len(historical_dates) # 23
+            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
+
+            # verify y_true_dates
+            all_dates = historical_dates + y_true_dates # 1 - 30
+            prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
+            # print(f"Predictions for dates {prediction_dates}")
+
+            model_predictions = trained_arma_model.predict(start=start, end=end, dynamic=False)
+            return model_predictions
+        
+        elif retrain == True:
+            start_retrain_idx = len(historical_data_df) - lag_to_test
+            history = historical_data_df[start_retrain_idx:].values.tolist()
+            for i in range(len(history)):
+                history[i] = np.array(history[i])
+            test = y_true_predictions_df.values
+
+            predictions = list()
+            for t in range(len(test)):
+                length = len(history)
+                lag = [history[i] for i in range(length - lag_to_test, length)]
+                coef = trained_arma_model.params
+                
+                yhat = coef[0]
+                for d in range(lag_to_test):
+                    yhat += coef[d+1] * lag[lag_to_test-d-1]
+                    obs = test[t]
+                predictions.append(yhat)
+                history.append(obs)
+                print('predicted=%f, expected=%f' % (yhat, obs))
+
+            return predictions
+        else:
+            print(f"{retrain} is NOT a valid name for retrian")
 
 class ARIMA_model(Model):
     def __name__(self):
@@ -487,6 +587,43 @@ class EvaluationMetric:
         else:
             mse = sqrt(mean_squared_error(true_predictions, model_predictions))
             print('Test RMSE: %.3f' % mse)
+
+    
+    def eval_mae(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
+        """Calculate the mean absolute error
+
+        Verifed with https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html#sklearn.metrics.mean_absolute_error
+        """
+        true_predictions = true_predictions_df.values
+
+        if per_element == True:
+            for predictions_idx in range(len(model_predictions)):
+                prediction = model_predictions[predictions_idx]
+                true_prediction = true_predictions[predictions_idx]
+                print('predicted=%f, expected=%f' % (prediction, true_prediction))
+                mae = mean_absolute_error(true_predictions, model_predictions)
+                print('Test MAE: %.3f' % mae)
+        else:
+            mae = mean_absolute_error(true_predictions, model_predictions)
+            print('Test MAE: %.3f' % mae)
+
+    def eval_mape(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
+        """Calculate the mean absolute percentage error
+        
+        Verifed with https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html#sklearn.metrics.mean_absolute_percentage_error
+        """
+        true_predictions = true_predictions_df.values
+
+        if per_element == True:
+            for predictions_idx in range(len(model_predictions)):
+                prediction = model_predictions[predictions_idx]
+                true_prediction = true_predictions[predictions_idx]
+                print('predicted=%f, expected=%f' % (prediction, true_prediction))
+                mape = mean_absolute_percentage_error(true_predictions, model_predictions)
+                print('Test MAPE: %.3f' % mape)
+        else:
+            mape = mean_absolute_percentage_error(true_predictions, model_predictions)
+            print('Test MAPE: %.3f' % mape)
 
     # Need to rebuild and verify
     def plot_forecast(train_data_df: pd.DataFrame, test_data_df: pd.DataFrame, predictions: np.array, per_element=True):
