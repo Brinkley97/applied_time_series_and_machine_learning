@@ -9,7 +9,7 @@ from time_series import UnivariateTimeSeries
 
 def build_airline_passenger_uts() -> UnivariateTimeSeries:
     # Get air passenger data and build our UTS
-    data_df = pd.read_csv("../datasets/AirPassengers.csv")
+    data_df = pd.read_csv("../../datasets/AirPassengers.csv")
 
     return UnivariateTimeSeries(
         time_col="month",
@@ -47,7 +47,7 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
     )
 
 def build_air_temperature_uts() -> UnivariateTimeSeries:
-    data_df = pd.read_csv("../datasets/daily-min-temperatures.csv")
+    data_df = pd.read_csv("../../datasets/daily-min-temperatures.csv")
 
     return UnivariateTimeSeries(
         time_col="Date",
@@ -82,6 +82,23 @@ def build_website_traffic_uts() -> UnivariateTimeSeries:
         time_values=data_df.index,
         values_cols="traffic",
         values=data_df["traffic"].values
+    )
+
+def build_bitcoin_uts() -> UnivariateTimeSeries:
+    # Get website traffic data and build our UTS
+    data_df = pd.read_csv("../../datasets/nlp_ts/bitcoin_2017_to_2023.csv")
+    data_df['Date with tmestamp'] = pd.to_datetime(data_df['timestamp'])
+    data_df['timestamp'] = data_df['Date with tmestamp'].dt.date
+    data_df = data_df.rename(columns={"timestamp": "Timestamp"})
+    data_df.set_index("Timestamp", inplace=True)
+
+
+
+    return UnivariateTimeSeries(
+        time_col=data_df.index.name,
+        time_values=data_df.index.values,
+        values_cols="close",
+        values=data_df["close"].values
     )
 
 def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
