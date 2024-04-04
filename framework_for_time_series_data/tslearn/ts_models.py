@@ -107,17 +107,11 @@ class PersistenceWalkForward(Model):
 
 # extend class AR(AutoReg):
 # OR
+# verified
 class AR(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive model
 
-    Verify with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
-
-    Methods
-    -------
-    train_ar_model(train_data_df: pd.DataFrame, threshold_lags: list)
-        Initial and train an autoregressive model
-    predict(trained_ar_model, train_data_df: pd.DataFrame, test_data_df: pd.DataFrame)
-        Make predictions with trained autoregressive models.
+    Verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
 
     """
     def __name__(self):
@@ -132,6 +126,7 @@ class AR(Model):
         ----------
         train_data_df: `pd.DataFrame`
             Data to train our autoregressive model on
+
         threshold_lags: `list`
             A list of lag values that are over a threshold to pass to autoregressive model
 
@@ -148,30 +143,33 @@ class AR(Model):
         return trained_ar_model
 
     def predict(self, trained_ar_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
-        """Make predictions with trained autoregressive models.
-
-        Verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+        """Make predictions with trained autoregressive moving average model.
 
         Parameters
         ----------
-        trained_ar_models: AR models
+        trained_arma_model: AR models
             Trained autoregressive models
 
         historical_data_df: `pd.DataFrame`
             The data we used to train our model(s)
 
-        test_data_df: `pd.DataFrame`
+        y_true_predictions_df: `pd.DataFrame`
             The actual forecasts
 
+        retrain: `bool`
+            False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
+            True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
+
         Returns
-        ------
+        -------
         model_predictions: `np.array`
-            A list of predictions for each autoregressive model with each differing by lag value
+            A list of predictions
 
         """
+
         if retrain == False:
             # Example: Days 1 - 30 with forecast of 7 days
-            historical_dates = list(historical_data_df.index) # 1 - 23 
+            historical_dates = list(historical_data_df.index) # 1 - 23
             y_true_dates = list(y_true_predictions_df.index) # 24 - 30
             print(f"Predictions for dates {y_true_dates}")
 
@@ -185,7 +183,7 @@ class AR(Model):
 
             model_predictions = trained_ar_model.predict(start=start, end=end, dynamic=False)
             return model_predictions
-        
+
         elif retrain == True:
             start_retrain_idx = len(historical_data_df) - lag_to_test
             history = historical_data_df[start_retrain_idx:].values.tolist()
@@ -198,7 +196,7 @@ class AR(Model):
                 length = len(history)
                 lag = [history[i] for i in range(length - lag_to_test, length)]
                 coef = trained_ar_model.params
-                
+
                 yhat = coef[0]
                 for d in range(lag_to_test):
                     yhat += coef[d+1] * lag[lag_to_test-d-1]
@@ -251,104 +249,33 @@ class MA(Model):
 
         return predicted_forecasts
 
-# Need to rebuild and verify
-class ARMA_old(Model):
-    def __name__(self):
-        return "ARMA"
-
-    def train_arma_model(self, train_data: np.array, test_lags: list, test_error_terms: list) -> list:
-        """Initial and train an autoregressive moving average model.
-
-        Parameters
-        ----------
-        train_data: `np.array`
-            Data to train our autoregressive model on
-        test_lags: `list`
-            A list of lag values to pass to autoregressive model
-        test_error_terms: `list`
-            A list of error terms to pass to moving average model
-
-        Returns
-        ------
-        trained_ar_models: `list`
-            A list of trained autoregressive moving average models with each differing by lag value
-
-        """
-        if len(test_lags) != len(test_error_terms):
-            raise ValueError("Lengths of test_lags and test_error_terms must be the same. Will update later such that they can be different.")
-
-        test_lags_and_error_terms = len(test_lags)
-        trained_arma_models = []
-        for test_lags_and_error_terms_idx in range(test_lags_and_error_terms):
-            test_lag_term = test_lags[test_lags_and_error_terms_idx]
-            test_error_term = test_error_terms[test_lags_and_error_terms_idx]
-            print("ARMA(", test_lag_term, 0, test_error_term, ")")
-
-            arma_model = ARIMA(train_data, order=(test_lag_term, 0, test_error_terms), trend="n")
-            trained_arma_model = arma_model.fit()
-            print(trained_arma_model.summary())
-            trained_arma_models.append(trained_arma_model)
-
-        return trained_arma_models
-
-    def predict(self, trained_arma_models, train: np.array, test: np.array) -> np.array:
-        """Make predictions with trained autoregressive moving average models.
-
-        Parameters
-        ----------
-        trained_arma_models: ARMA models
-            Trained autoregressive moving average models
-        train: `np.array`
-            The training data
-        test: `np.array`
-            The testing data
-
-        Returns
-        ------
-        predictions: `list`
-            A list of predictions for each autoregressive moving average model with each differing by lag value
-
-        """
-        len_historical_data = len(train)
-        predictions = []
-        for trained_arma_models_idx in range(len(trained_arma_models)):
-            trained_arma_model = trained_arma_models[trained_arma_models_idx]
-            print("ARMA(", trained_arma_model, ")")
-            model_prediction = trained_arma_model.predict(start=len_historical_data, end=len(train)+len(test)-1, dynamic=False)
-            predictions.append(model_prediction)
-
-        return predictions
-
 class ARMA(Model):
-    """A class used to initialize, train, and forecast predictions with our autoregressive model
+    """A class used to initialize, train, and forecast predictions with our autoregressive moving average model.
 
     Modifying AR code bc we verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
-
-    Methods
-    -------
-    train_arma_model(train_data_df: pd.DataFrame, threshold_lags: list, threshold_lags: list)
-        Initial and train an autoregressive moving average model
-    predict(trained_arma_model, train_data_df: pd.DataFrame, test_data_df: pd.DataFrame)
-        Make predictions with trained autoregressive moving average model
 
     """
     def __name__(self):
         return "ARMA"
 
     def train_arma_model(self, train_data_df: pd.DataFrame, lag_p: int, error_q: int):
-        """Initial and train an autoregressive model.
+        """Initial and train an autoregressive moving average model.
 
         Parameters
         ----------
         train_data_df: `pd.DataFrame`
             Data to train our autoregressive model on
-        threshold_lags: `list`
-            A list of lag values that are over a threshold to pass to autoregressive model
+
+        lag_p: `int`
+            Lag value from Partial Autocorrelation plot
+
+        error_q: `int`
+            Error value from Autocorrelation plot
 
         Returns
         ------
-        trained_ar_model: `statsmodel AutoReg model`
-            A single trained autoregressive models with each differing by lag value
+        trained_arma_model: `statsmodel AutoReg model`
+            A single trained autoregressive moving average model
 
         """
 
@@ -358,28 +285,33 @@ class ARMA(Model):
         return trained_arma_model
 
     def predict(self, trained_arma_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
-        """Make predictions with trained autoregressive moving average models.
+        """Make predictions with trained autoregressive moving average model.
 
         Parameters
         ----------
-        trained_ar_models: AR models
+        trained_arma_model: AR models
             Trained autoregressive models
 
         historical_data_df: `pd.DataFrame`
             The data we used to train our model(s)
 
-        test_data_df: `pd.DataFrame`
+        y_true_predictions_df: `pd.DataFrame`
             The actual forecasts
+
+        retrain: `bool`
+            False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
+            True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
 
         Returns
         -------
         model_predictions: `np.array`
-            A list of predictions for each autoregressive model with each differing by lag value
+            A list of predictions
 
         """
+        
         if retrain == False:
             # Example: Days 1 - 30 with forecast of 7 days
-            historical_dates = list(historical_data_df.index) # 1 - 23 
+            historical_dates = list(historical_data_df.index) # 1 - 23
             y_true_dates = list(y_true_predictions_df.index) # 24 - 30
             print(f"Predictions for dates {y_true_dates}")
 
@@ -393,7 +325,7 @@ class ARMA(Model):
 
             model_predictions = trained_arma_model.predict(start=start, end=end, dynamic=False)
             return model_predictions
-        
+
         elif retrain == True:
             start_retrain_idx = len(historical_data_df) - lag_to_test
             history = historical_data_df[start_retrain_idx:].values.tolist()
@@ -406,7 +338,7 @@ class ARMA(Model):
                 length = len(history)
                 lag = [history[i] for i in range(length - lag_to_test, length)]
                 coef = trained_arma_model.params
-                
+
                 yhat = coef[0]
                 for d in range(lag_to_test):
                     yhat += coef[d+1] * lag[lag_to_test-d-1]
@@ -554,7 +486,7 @@ class EvaluationMetric:
     # Need to rebuild and verify
     def eval_mse(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
         """Calculate the mean squared error
-        
+
         Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
         """
         true_predictions = true_predictions_df.values
@@ -572,7 +504,7 @@ class EvaluationMetric:
 
     def eval_rmse(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
         """Calculate the root mean squared error
-        
+
         Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
         """
         true_predictions = true_predictions_df.values
@@ -588,7 +520,7 @@ class EvaluationMetric:
             mse = sqrt(mean_squared_error(true_predictions, model_predictions))
             print('Test RMSE: %.3f' % mse)
 
-    
+
     def eval_mae(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
         """Calculate the mean absolute error
 
@@ -609,7 +541,7 @@ class EvaluationMetric:
 
     def eval_mape(true_predictions_df: pd.DataFrame, model_predictions: np.array, per_element: bool):
         """Calculate the mean absolute percentage error
-        
+
         Verifed with https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html#sklearn.metrics.mean_absolute_percentage_error
         """
         true_predictions = true_predictions_df.values
@@ -729,10 +661,10 @@ class EvaluationMetric:
         matplotx.line_labels()
         plt.show()
 
-    
+
     def plot_predictions(true_predictions_df: pd.DataFrame, model_predictions: np.array, lag: int):
         """Plots the in-sample prediction of each model respectively on the same plot.
-        
+
         Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
         """
 
@@ -742,8 +674,8 @@ class EvaluationMetric:
         plt.xlabel("Observations")
         plt.ylabel("Values")
 
-        plt.plot(true_predictions, color='blue', label='Actual Forecasts', linewidth=1)
+        plt.plot(true_predictions, color='blue', label='Actual Forecasts', linewidth=3)
         plt.plot(model_predictions, color='red', label='Predicted Forecasts', linewidth=2)
-        
+
         matplotx.line_labels()
         plt.show()
