@@ -153,7 +153,7 @@ class TimeSeriesMixin(ABC):
             The statistics of the univariate time series data
         """
         return self.data.describe()
-    
+
     # write code to support the returning of the specific date for the max, min, and range
     def range_skewness_kurtosis(self, axis: int = 0) -> pd.Series:
         max_value = self.data.max(axis=axis)
@@ -244,7 +244,7 @@ class TimeSeriesMixin(ABC):
     #     validation_size: int
     # ) -> Tuple[TimeSeries, ...]:
     #     pass
-    
+
     def get_train_validation_test_split(X, y, test_size: 0.2, shuffle: bool =False):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=shuffle)
         return X_train, X_test, y_train, y_test
@@ -705,7 +705,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         if both_train_test == True
             train_sliced_uts, test_slice_uts: `UnivariateTimeSeries`
                 A new instance of univariate time series with the sliced data
-            
+
         """
         print(start, end)
         if both_train_test == False:
@@ -717,7 +717,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             )
 
             return sliced_uts
-        
+
         elif both_train_test == True:
             N = len(self.get_series())
             train_sliced_uts = type(self)(
@@ -730,7 +730,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             test_sliced_uts = type(self)(
                 time_col=self.get_time_col_name,
                 time_values=self.data.index[end:N],
-                values_cols=f"{self}[{start}:{end}]",
+                values_cols=f"{self}[{end}:{N}]",
                 values=self.data[self.get_value_col_name].values[end:N].copy()
             )
 
@@ -745,7 +745,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         ----------
         train_percent: `float`
             Amount to use for training data
-        
+
         train_or_test: `str`
             Specify if we want to split for train or test
 
@@ -762,7 +762,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         if both_train_test == True
             train_sliced_uts, test_slice_uts: `UnivariateTimeSeries`
                 A new instance of univariate time series with the sliced data
-            
+
         """
         N = len(self.get_series())
         train_size = int(N * train_percent)
@@ -778,7 +778,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
                 )
 
                 return train_sliced_uts
-        
+
             elif train_or_test == 'Test':
                 test_size = N - train_size
                 print(f"{train_or_test} size is", test_size)
@@ -790,7 +790,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
                 )
 
                 return test_sliced_uts
-        
+
         elif both_train_test == True:
             train_sliced_uts = type(self)(
                 time_col=self.get_time_col_name,
@@ -812,18 +812,18 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
     def split_sequence(self, forecasting_step: int, prior_observations: int):
         """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp. Use for ML models.
-    
+
         Parameters
         ----------
         forecasting_step: `int`
             How far out to forecast (ie: 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps)
-        
+
         prior_observations: `int`
             The number of input observations to use to make our forecast
         """
         df = pd.DataFrame(self.get_series())
         cols = list()
-        
+
         lag_col_names = []
 
         # input sequence (t-n, ... t-1)
@@ -831,28 +831,28 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             cols.append(df.shift(prior_observation))
             new_col_name = "t-" + str(prior_observation)
             lag_col_names.append(new_col_name)
-            
+
         # forecast sequence (t, t+1, ... t+n)
         for i in range(0, forecasting_step):
             cols.append(df.shift(-i))
-            
-            new_col_name = "t" 
+
+            new_col_name = "t"
             if forecasting_step == 1:
                 lag_col_names.append(new_col_name)
-            
+
             else:
                 if i == 0:
                     lag_col_names.append(new_col_name)
                 else:
                     new_col_name = "t+" + str(i)
                     lag_col_names.append(new_col_name)
-            
+
             # put it all together
-            uts_sml_df = pd.concat(cols, axis=1) 
+            uts_sml_df = pd.concat(cols, axis=1)
             uts_sml_df.columns=[lag_col_names]
             # drop rows with NaN values
             uts_sml_df.dropna(inplace=True)
-        
+
         return uts_sml_df
 
 
