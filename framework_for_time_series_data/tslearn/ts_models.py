@@ -107,7 +107,6 @@ class PersistenceWalkForward(Model):
 
 # extend class AR(AutoReg):
 # OR
-# verified
 class AR(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive model
 
@@ -171,7 +170,7 @@ class AR(Model):
             # Example: Days 1 - 30 with forecast of 7 days
             historical_dates = list(historical_data_df.index) # 1 - 23
             y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-            print(f"Predictions for dates {y_true_dates}")
+            # print(f"Predictions for dates {y_true_dates}")
 
             start = len(historical_dates) # 23
             end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
@@ -203,7 +202,7 @@ class AR(Model):
                     obs = test[t]
                 predictions.append(yhat)
                 history.append(obs)
-                print('predicted=%f, expected=%f' % (yhat, obs))
+                # print('predicted=%f, expected=%f' % (yhat, obs))
 
             return predictions
         else:
@@ -274,7 +273,7 @@ class ARMA(Model):
 
         Returns
         ------
-        trained_arma_model: `statsmodel AutoReg model`
+        trained_arma_model: `statsmodel ARIMA model`
             A single trained autoregressive moving average model
 
         """
@@ -290,7 +289,7 @@ class ARMA(Model):
         Parameters
         ----------
         trained_arma_model: AR models
-            Trained autoregressive models
+            Trained autoregressive moving average model
 
         historical_data_df: `pd.DataFrame`
             The data we used to train our model(s)
@@ -308,12 +307,12 @@ class ARMA(Model):
             A list of predictions
 
         """
-        
+
         if retrain == False:
             # Example: Days 1 - 30 with forecast of 7 days
             historical_dates = list(historical_data_df.index) # 1 - 23
             y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-            print(f"Predictions for dates {y_true_dates}")
+            # print(f"Predictions for dates {y_true_dates}")
 
             start = len(historical_dates) # 23
             end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
@@ -345,13 +344,13 @@ class ARMA(Model):
                     obs = test[t]
                 predictions.append(yhat)
                 history.append(obs)
-                print('predicted=%f, expected=%f' % (yhat, obs))
+                # print('predicted=%f, expected=%f' % (yhat, obs))
 
             return predictions
         else:
-            print(f"{retrain} is NOT a valid name for retrian")
+            print(f"{retrain} is NOT a valid name for retrain")
 
-class ARIMA_model(Model):
+class ARIMA_model_old(Model):
     def __name__(self):
         return "ARIMA"
 
@@ -415,67 +414,110 @@ class ARIMA_model(Model):
 
         return predictions
 
-class MLP(nn.Module):
+class ARIMA_model(Model):
+    """A class used to initialize, train, and forecast predictions with our autoregressive integrated moving average model.
+
+    Modifying AR code bc we verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
+
+    """
     def __name__(self):
-        return "MLP"
+        return "ARMA"
 
+    def train_arima_model(self, train_data_df: pd.DataFrame, lag_p: int, integrated_d : int, error_q: int):
+        """Initial and train an autoregressive integrated moving average model.
 
-    def __init__(self, input_size, hidden_size, output_size):
-        super(MLP, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
-        self.relu = nn.ReLU()
+        Parameters
+        ----------
+        train_data_df: `pd.DataFrame`
+            Data to train our autoregressive moving average model
 
-    def augment_data(uts_observations, prior_observations: int, forecasting_step: int) -> pd.DataFrame:
-        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
+        lag_p: `int`
+            Lag value from Partial Autocorrelation plot
 
-        Parameters:
-        uts_observations -- 1D np array (of UTS data to transform to SML data with size  b rows/length x 1 dimension)
-        prior_observations -- py int (of all observations before we get to where we want to start making the predictions)
-        forecasting_step -- py int (of how far out to forecast, 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps)
+        integrated_d: `int`
+            Differenced term
 
-        Return:
-        agg.values -- np array (of new sml data)
+        error_q: `int`
+            Error value from Autocorrelation plot
+
+        Returns
+        ------
+        trained_arma_model: `statsmodel ARIMA model`
+            A single trained autoregressive integrated moving average model
+
         """
 
-        df = pd.DataFrame(uts_observations)
-        cols = list()
+        arima_model = ARIMA(train_data_df, order=(lag_p, integrated_d, error_q), trend="n")
+        trained_arima_model = arima_model.fit()
 
-        lag_col_names = []
-        count_lag = 0
-        # input sequence (t-n, ... t-1)
-        for prior_observation in range(prior_observations, 0, -1):
-            # print("prior_observation: ", prior_observation)
-            cols.append(df.shift(prior_observation))
-            new_col_name = "t-" + str(prior_observation)
-            # print(new_col_name)
-            lag_col_names.append(new_col_name)
+        return trained_arima_model
 
+    def predict(self, trained_arima_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
+        """Make predictions with trained autoregressive integrated moving average model.
 
-        # forecast sequence (t, t+1, ... t+n)
-        for i in range(0, forecasting_step):
-            cols.append(df.shift(-i))
-            new_col_name = "t"
-            # print(new_col_name)
-            lag_col_names.append(new_col_name)
+        Parameters
+        ----------
+        trained_arima_model: ARIMA models
+            Trained autoregressive integrated moving average model
 
-            # put it all together
-            uts_sml_df = pd.concat(cols, axis=1)
-            uts_sml_df.columns=[lag_col_names]
-            # drop rows with NaN values
-            uts_sml_df.dropna(inplace=True)
+        historical_data_df: `pd.DataFrame`
+            The data we used to train our model(s)
 
-        # colums to use to make prediction for last col
-        X_train = uts_sml_df.iloc[:, 0: -1]
+        y_true_predictions_df: `pd.DataFrame`
+            The actual forecasts
 
-        # last column
-        y_train = uts_sml_df.iloc[:, [-1]]
-        return uts_sml_df, X_train, y_train
+        retrain: `bool`
+            False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
+            True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
 
-    def forward(self, x):
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+        Returns
+        -------
+        model_predictions: `np.array`
+            A list of predictions
+
+        """
+
+        if retrain == False:
+            # Example: Days 1 - 30 with forecast of 7 days
+            historical_dates = list(historical_data_df.index) # 1 - 23
+            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
+            # print(f"Predictions for dates {y_true_dates}")
+
+            start = len(historical_dates) # 23
+            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
+
+            # verify y_true_dates
+            all_dates = historical_dates + y_true_dates # 1 - 30
+            prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
+            # print(f"Predictions for dates {prediction_dates}")
+
+            model_predictions = trained_arima_model.predict(start=start, end=end, dynamic=False)
+            return model_predictions
+
+        elif retrain == True:
+            start_retrain_idx = len(historical_data_df) - lag_to_test
+            history = historical_data_df[start_retrain_idx:].values.tolist()
+            for i in range(len(history)):
+                history[i] = np.array(history[i])
+            test = y_true_predictions_df.values
+
+            predictions = list()
+            for t in range(len(test)):
+                length = len(history)
+                lag = [history[i] for i in range(length - lag_to_test, length)]
+                coef = trained_arima_model.params
+
+                yhat = coef[0]
+                for d in range(lag_to_test):
+                    yhat += coef[d+1] * lag[lag_to_test-d-1]
+                    obs = test[t]
+                predictions.append(yhat)
+                history.append(obs)
+                # print('predicted=%f, expected=%f' % (yhat, obs))
+
+            return predictions
+        else:
+            print(f"{retrain} is NOT a valid name for retrain")
 
 @dataclass
 class EvaluationMetric:
@@ -642,8 +684,9 @@ class EvaluationMetric:
                 test_values = test_data_df.values
                 plt.plot(test_dates, test_values, color='green', label='Actual Forecasts', linewidth=4)
 
-                # Plotting the forecasted values
-                plt.plot(test_dates, prediction, color='red', label='Predicted Forecasts', linewidth=2)
+                # # Plotting the forecasted values
+                plt.plot(test_dates[predictions_idx], prediction, color='red', label='Predicted Forecasts', linewidth=2)
+                
         else:
             plt.figure(figsize=(18, 4))
             plt.xlabel("Observations")
@@ -662,7 +705,7 @@ class EvaluationMetric:
         plt.show()
 
 
-    def plot_predictions(true_predictions_df: pd.DataFrame, model_predictions: np.array, lag: int):
+    def plot_predictions(true_predictions_df: pd.DataFrame, model_predictions: np.array):
         """Plots the in-sample prediction of each model respectively on the same plot.
 
         Verifed with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
@@ -674,8 +717,8 @@ class EvaluationMetric:
         plt.xlabel("Observations")
         plt.ylabel("Values")
 
-        plt.plot(true_predictions, color='blue', label='Actual Forecasts', linewidth=3)
-        plt.plot(model_predictions, color='red', label='Predicted Forecasts', linewidth=2)
+        plt.plot(true_predictions, color='blue', label='True Values', linewidth=3)
+        plt.plot(model_predictions, color='red', label='Predicted Values', linewidth=2)      
 
         matplotx.line_labels()
         plt.show()
