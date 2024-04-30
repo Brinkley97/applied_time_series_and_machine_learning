@@ -40,38 +40,50 @@ class MLP(nn.Module):
         fc2_out = self.fc2(relu_out)
         return fc2_out
     
-    def train(self, input_size: int, hidden_size: int, output_size: int, config: list):
+    def train(self, X, y, config: list):
         """Train the MLP for #epoch
 
+        Parameters
+        ----------
+        X: `pd.DataFrame` 
+            Input data tensor
+        y: `pd.DataFrame`
+            Target data tensor
+        config: `py list`
+            criterion: `torch.nn.Module`
+                Loss criterion
+            optimize: `torch.optim.Optimizer`
+                Optimization algorithm
+            epochs: `int` 
+                Number of training epochs
+
+
         """
-        criterion, optimizer = config
+        X_train = torch.tensor(X.values, dtype=torch.float32)
+        y_train = torch.tensor(y.values, dtype=torch.float32)
 
-        X = torch.randn(hidden_size, input_size)  # Example input data
-        y = torch.randn(hidden_size, output_size)  # Example target data
+        criterion, optimizer, epochs = config
 
-        epochs = 2000
         for epoch in range(epochs):
             # Forward pass
-            outputs = self(X)
-            loss = criterion(outputs, y)
+            outputs = self(X_train)
+            loss = criterion(outputs, y_train)
             
             # Backward pass and optimization
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            loss.backward() # calculate the gradients
+            optimizer.step() # update the weights
             
             if (epoch+1) % 100 == 0:
                 print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item()}')
     
-    def predict(self, data_df: pd.DataFrame, input_size: int):
+    def predict(self, data_tensor: pd.DataFrame, input_size: int):
         """
+        data_tensor: `torch.Tensor`
+            Test data
         """
-
-        x_input_df = data_df.iloc[[-1], -input_size:].copy()
-        x_input_tensor = torch.tensor(x_input_df.values, dtype=torch.float32)
-        print("x_input_tensor shape:", x_input_tensor.shape, x_input_tensor)
-
-        yhat = self(x_input_tensor)  # Perform forward pass
+        
+        yhat = self(data_tensor)  # Perform forward pass
         
         # Extract predicted values for each sample in the batch
         predicted_values = yhat.squeeze(dim=1).tolist()  # Convert tensor to list of predicted values
