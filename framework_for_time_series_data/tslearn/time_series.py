@@ -37,14 +37,15 @@ class TimeSeriesParameters(TypedDict):
     value: `TimeSeriesData`
         The univariate or multivariate time series raw data
     """
+    # dictionary-like structure:
+    # key : value
     time_col: str
     time_values: List[Any]
     values_cols: List[str]
     values: TimeSeriesData
 
-
 class TimeSeriesFactory:
-    """Abstract factory for creating time series objects."""
+    """Abstract factory for creating time series objects (UnivariateTimeSeries, MultivariateTimeSeries)."""
     @staticmethod
     def create_time_series(**kwargs: TimeSeriesParameters) -> TimeSeries:
         """Create a time series object from a time index and univariate or
@@ -78,14 +79,28 @@ class TimeSeriesFactory:
     @staticmethod
     def _is_multivariate_time_series(**kwargs: TimeSeriesParameters):
         values = kwargs["values"]
+        # print("values", values)
         values_cols = kwargs["values_cols"]
+        # print("values_cols", len(values_cols))
         time_values = kwargs["time_values"]
+        # print("time_values", time_values)
+        
 
         # TODO: Should be strictly > 1. With >=, we're able to process a single stock without having to include another that matches the exact time frame
         if len(values_cols) >= 1:
-            len_values = [len(v) for v in values]
-            equiv_dimensions = [len(time_values) == lv for lv in len_values]
-            if all(equiv_dimensions):
+            len_values = []
+            for v in values:
+                len_values.append(len(v))
+
+            print("Len", len_values)
+            all_lengths_match = True
+            for len_value in len_values:
+                print("Len", len_values)
+                if len_value != len(time_values):
+                    all_lengths_match = False
+                    break
+                    
+            if all_lengths_match:
                 return True
             else:
                 raise ValueError(
@@ -93,7 +108,29 @@ class TimeSeriesFactory:
                     + f" equivalent. Lengths: {len_values}"
                 )
         return False
+        
+        # if isinstance(values, list) and isinstance(values[0], list) and \
+        #     isinstance(values_cols, list) and isinstance(values_cols[0], str):
+        #     num_cols_values = len(values[0])
+        #     num_cols_values_cols = len(values_cols)
 
+        #     if num_cols_values == num_cols_values_cols:
+        #         return True  # It's multivariate
+
+        # if TimeSeriesFactory._is_univariate_time_series(values=values, values_cols=values_cols, time_values=time_values):
+        #     counter = 1  # Counter to track the number of columns
+        #     if isinstance(values_cols, list):
+        #         counter += len(values_cols) - 1  # Increment counter by the number of extra columns
+        #     if counter > 1:
+        #         # Reformat data for multivariate case
+        #         ts_params = {
+        #             "time_col": kwargs["time_col"],
+        #             "time_values": time_values,
+        #             "values_cols": values_cols,
+        #             "values": values  # Assuming TimeSeriesData is already in the correct format
+        #         }
+        #         return ts_params
+        # return None  # Return None if it's not univariate or counter <= 1
 
 class TimeSeriesMixin(ABC):
     def __init__(self, **kwargs: TimeSeriesParameters):
@@ -103,27 +140,49 @@ class TimeSeriesMixin(ABC):
         col_names, col_values = TimeSeriesMixin._get_col_names_and_values(
             **kwargs
         )
+        # print("col_names: ", col_names)
 
         if not TimeSeriesFactory._is_univariate_time_series(**kwargs):
             # Unpack column values for multivariate time series
             cvs = [col_values[0]]
+            # print("cvs: ", cvs)
             # Exclude the time column values
             values_per_value_col = col_values[1]
-            for value_col in values_per_value_col:
-                cvs.append(value_col)
-            col_values = cvs
 
-        self.data = pd.DataFrame(
-            {
-                name: data for name, data in zip(col_names, col_values)
-            }
-        )
-        self.data.set_index(kwargs["time_col"], inplace=True)
+            # check if
+            if type(values_per_value_col) is pd.DataFrame:
+                print("values_per_value_col: ", type(values_per_value_col))
+                print(values_per_value_col)
+
+                self.data = values_per_value_col
+                print(type(self.data))
+
+                # return MultivariateTimeSeries(**kwargs)
+            
+                # self.data.set_index(values_per_value_col.index.name, inplace=True)
+                # for value_col in values_per_value_col:
+                #     print("value_col: ", value_col)
+                #     cvs.append(value_col)
+                # col_values = cvs
+                # print("col_values: ", col_values)
+            else:
+
+                for value_col in values_per_value_col:
+                    print("value_col: ", value_col)
+                    cvs.append(value_col)
+                col_values = cvs
+                # print("col_values: ", col_values)
+        else:
+            # print("col_values: ", col_values)
+            self.data = pd.DataFrame(
+                {
+                    name: data for name, data in zip(col_names, col_values)
+                }
+            )
+            self.data.set_index(kwargs["time_col"], inplace=True)
 
     @staticmethod
-    def _get_col_names_and_values(
-        **kwargs: TimeSeriesParameters
-    ) -> Tuple[List[str], List[Any]]:
+    def _get_col_names_and_values(**kwargs: TimeSeriesParameters) -> Tuple[List[str], List[Any]]:
         """Get the column names and values from the time series parameters."""
         values = kwargs["values"]
         values_cols = kwargs["values_cols"]
@@ -200,51 +259,6 @@ class TimeSeriesMixin(ABC):
     def __len__(self) -> int:
         return self.data.shape[0]
 
-    # def get_train_validation_test_split_darian(
-    #     self,
-    #     train_size: float = 0.8,
-    #     validation_size: float = 0.2,
-    #     shuffle: bool = False
-    # ) -> Tuple[TimeSeries, ...]:
-    #     """Get the train, validation, and test splits of the time series data.
-
-    #     Parameters
-    #     ----------
-    #     train_size: `float`
-    #         The size of the training split
-    #     validation_size: `float`
-    #         The size of the validation split
-    #     test_size: `float`
-    #         The size of the test split
-
-    #     Returns
-    #     -------
-    #     train: `TimeSeries`
-    #         The training split
-    #     validation: `TimeSeries`
-    #         The validation split
-    #     test: `TimeSeries`
-    #         The test split
-    #     """
-    #     train_size = int(train_size * len(self))
-    #     validation_size = int(validation_size * len(self))
-
-    #     train_set, validation_set, test_set = self.\
-    #         _get_train_validation_test_split(
-    #             train_size=train_size,
-    #             validation_size=validation_size,
-    #     )
-
-    #     return (train_set, validation_set, test_set)
-
-    # @abstractmethod
-    # def _get_train_validation_test_split_darian(
-    #     self,
-    #     train_size: int,
-    #     validation_size: int
-    # ) -> Tuple[TimeSeries, ...]:
-    #     pass
-
     def get_train_validation_test_split(X, y, test_size: 0.2, shuffle: bool =False):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=shuffle)
         return X_train, X_test, y_train, y_test
@@ -267,7 +281,6 @@ class TimeSeriesMixin(ABC):
         """
 
         return self.data[-forecasting_step:]
-
 
 class UnivariateTimeSeries(TimeSeriesMixin):
 
@@ -639,6 +652,219 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         )
 
         return order_k_diff_uts
+    
+    def augment_data(self, forecasting_step: int, prior_observations: int) -> pd.DataFrame:
+        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
+
+        Parameters:
+        prior_observations -- py int (of all observations before we get to where we want to start making the predictions)
+        forecasting_step -- py int (of how far out to forecast, 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps)
+
+        Return:
+        agg.values -- np array (of new sml data)
+        """
+
+        df = self.data[self.get_value_col_name]
+        # index_col = df.index.name
+
+        cols = list()
+        lag_col_names = []
+
+        # input sequence (t-n, ... t-1)
+        for prior_observation in range(prior_observations, 0, -1):
+            # print("prior_observation: ", prior_observation)
+            cols.append(df.shift(prior_observation))
+            new_col_name = "t-" + str(prior_observation)
+            # print(new_col_name)
+            lag_col_names.append(new_col_name)
+
+
+        # forecast sequence (t, t+1, ... t+n)
+        for i in range(0, forecasting_step):
+            cols.append(df.shift(-i))
+            new_col_name = "t"
+            # print(new_col_name)
+            lag_col_names.append(new_col_name)
+
+            # put it all together
+            uts_sml_df = pd.concat(cols, axis=1)
+            uts_sml_df.columns=[lag_col_names]
+            # drop rows with NaN values
+            uts_sml_df.dropna(inplace=True)
+
+        # colums to use to make prediction for last col
+        # X_train = uts_sml_df.iloc[:, 0: -1]
+        X_train_df = uts_sml_df.iloc[:, :prior_observations]
+        # print("X_train_df: \n", X_train_df)
+
+        time_values = X_train_df.index
+        # print("time_values: \n", time_values)
+
+        values_cols = lag_col_names
+        # values_cols = list(X_train_df.columns)
+        # print("values_cols: \n", values_cols)
+
+        values_cols = lag_col_names[:prior_observations]
+        # print("values_cols: \n", values_cols)
+
+        # expand_values_col = []
+        # num_columns = X_train_df.shape[1]  # Number of columns in X_train_df
+        # for values_row in X_train_df.values:
+        #     expand_values_col.extend([values_cols] * len(values_row))
+        
+
+        # values_cols = lag_col_names[:prior_observations]
+        # print("expand_values_col: \n", len(expand_values_col))
+
+        values_num = X_train_df
+        # print("values: \n", len(values_num))
+        
+
+        # last column
+        y_train_df = uts_sml_df.iloc[:, [-1]]
+        
+        return MultivariateTimeSeries(
+            time_col=df.index.name,
+            time_values=time_values,
+            values_cols=values_cols,
+            values=values_num
+        )
+
+
+    def old_augment_data(self, forecasting_step: int, prior_observations: int) -> pd.DataFrame:
+        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
+
+        Parameters:
+        prior_observations -- py int (of all observations before we get to where we want to start making the predictions)
+        forecasting_step -- py int (of how far out to forecast, 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps)
+
+        Return:
+        agg.values -- np array (of new sml data)
+        """
+
+        df = self.data[self.get_value_col_name]
+        # index_col = df.index.name
+
+        cols = list()
+        lag_col_names = []
+
+        # input sequence (t-n, ... t-1)
+        for prior_observation in range(prior_observations, 0, -1):
+            # print("prior_observation: ", prior_observation)
+            cols.append(df.shift(prior_observation))
+            new_col_name = "t-" + str(prior_observation)
+            # print(new_col_name)
+            lag_col_names.append(new_col_name)
+
+
+        # forecast sequence (t, t+1, ... t+n)
+        for i in range(0, forecasting_step):
+            cols.append(df.shift(-i))
+            new_col_name = "t"
+            # print(new_col_name)
+            lag_col_names.append(new_col_name)
+
+            # put it all together
+            uts_sml_df = pd.concat(cols, axis=1)
+            uts_sml_df.columns=[lag_col_names]
+            # drop rows with NaN values
+            uts_sml_df.dropna(inplace=True)
+
+        # colums to use to make prediction for last col
+        # X_train = uts_sml_df.iloc[:, 0: -1]
+        X_train_df = uts_sml_df.iloc[:, :prior_observations]
+        # print("X_train_df: \n", X_train_df)
+
+        time_values = X_train_df.index
+        # print("time_values: \n", time_values)
+
+        # values_cols = lag_col_names
+        values_cols = list(X_train_df.columns)
+        # print("values_cols: \n", values_cols)
+        
+        values_num = X_train_df.values
+        # print("values: \n", len(values_num))
+        
+
+        # last column
+        y_train_df = uts_sml_df.iloc[:, [-1]]
+        
+        # return X_train_df, y_train_df
+        # return X_train_df.index, list(X_train_df.columns), X_train_df.values
+        # print(len(X_train_df.values), X_train_df)
+        # print(df.index.name)
+        # print(len(X_train_df.index), X_train_df.index)
+        # print(X_train_df.columns, lag_col_names, lag_col_names[0])
+        # print(len(X_train_df.values), X_train_df.values)
+
+        # expand_time_values = []
+        # expand_values_col = []
+        # num_columns = X_train_df.shape[1]  # Number of columns in X_train_df
+        # for _ in range(num_columns):
+        #     expand_values_col.extend([values_cols])
+
+        
+        for lag_col_names_idx in range(len(lag_col_names)):
+            lag_col_name = lag_col_names[lag_col_names_idx]
+            # print("X_train_df.index", X_train_df.index)
+            # print("lag_col_name", lag_col_name)
+            # print("X_train_df.iloc[0:, lag_col_names_idx]", X_train_df.iloc[0:, lag_col_names_idx])
+
+            return UnivariateTimeSeries(
+            time_col=df.index.name,
+            time_values=X_train_df.index,
+            values_cols=lag_col_name,
+            values=X_train_df.iloc[0:, lag_col_names_idx]
+        )
+        
+        # print(df.index.name)
+        # print()
+        # print(X_train_df.index)
+        # print()
+        # print(len(expand_values_col))
+        # print()
+        # print(len(X_train_df.values))
+        # print()
+
+
+        # print(df.index.name)
+        # print()
+        # print(lag_col_names.index)
+        # print()
+        # print(len(expand_values_col))
+        # print()
+        # print(len(lag_col_names))
+        # print()
+   
+
+            # return MultivariateTimeSeries(
+            # time_col=df.index.name,
+            # time_values=X_train_df[lag_col_name].index,
+            # values_cols=lag_col_name,
+            # values=col_df.values[lag_col_names_idx]
+        # return MultivariateTimeSeries(
+        #     time_col=df.index.name,
+        #     time_values=lag_col_names.index,
+        #     values_cols=expand_values_col,
+        #     values=lag_col_name
+        # )
+
+        
+        # try to return a UnivariateTimeSeries and convert to MultivariateTimeSeries
+        # as in return col 1 as UnivariateTimeSeries
+        # return col 2 as UnivariateTimeSeries
+        # then, combine UnivariateTimeSeries s to a single MultivariateTimeSeries
+        # return MultivariateTimeSeries(
+        #     time_col=df.index.name,
+        #     time_values=X_train_df.index,
+        #     values_cols=lag_col_names[0],
+        #     values=X_train_df.values
+        # )
+    
+        # time_col="date",
+        # time_values=["2020-01-01", "2020-01-02"],
+        # values_cols=["value1", "value2", "value3"],
+        # values=[[1, 2], [3, 4], [5, 6]]
 
     def average_smoothing(self, sliding_window: int, with_plot=True) -> UnivariateTimeSeries:
         """Data prep step to smooth original TS data
@@ -855,7 +1081,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return uts_sml_df
 
-
     # def get_train_validation_test_split_darian(
     #     self,
     #     train_size: int,
@@ -938,7 +1163,11 @@ class MultivariateTimeSeries(TimeSeriesMixin):
             values_cols=col_name,
             values=self.data[col_name].values
         )
-
+    
+    def get_as_df(self) -> pd.DataFrame:
+        """Get the name and data."""
+        return self.data
+    
     def _get_train_validation_test_split(
         self,
         train_size: int,
