@@ -140,22 +140,79 @@ class TimeSeriesMixin(ABC):
         col_names, col_values = TimeSeriesMixin._get_col_names_and_values(
             **kwargs
         )
-        # print("col_names: ", col_names)
+        print("col_names: ", type(col_names), "col_values", type(col_values))
 
         if not TimeSeriesFactory._is_univariate_time_series(**kwargs):
             # Unpack column values for multivariate time series
-            cvs = [col_values[0]]
-            # print("cvs: ", cvs)
+            date_idx_col = [col_values[0]]
+            # print("date_idx_col: ", date_idx_col)
             # Exclude the time column values
             values_per_value_col = col_values[1]
+            # print(values_per_value_col)
 
-            # check if
-            if type(values_per_value_col) is pd.DataFrame:
-                print("values_per_value_col: ", type(values_per_value_col))
-                print(values_per_value_col)
+            # check if we have a DataFrame
+            if type(col_values[1]) is pd.DataFrame:
+                # print("values_per_value_col: ", type(values_per_value_col))
+                # print(values_per_value_col)
 
-                self.data = values_per_value_col
-                print(type(self.data))
+                # since DataFrame, return that
+                # self.data = values_per_value_col
+                # col_values_transposed = list(map(list, zip(*values_per_value_col)))
+                # print("col_values_transposed: ", type(col_values_transposed), col_values_transposed)
+                # mvts = pd.DataFrame({name: data for name, data in zip(col_names, values_per_value_col)})
+                # print("mvts: ", type(mvts), mvts)
+
+                time_col_index = col_names.index(kwargs["time_col"])
+
+                # Extract time column values
+                time_values = col_values[time_col_index]
+
+                # Remove the time column from col_names and col_values
+                del col_names[time_col_index]
+                del col_values[time_col_index]
+
+                # Set values_cols to remaining column names
+                values_cols = col_names
+
+                # Set values to remaining column values
+                values = col_values
+
+                # Create DataFrame from remaining data
+                self.data = pd.DataFrame({name: [data] for name, data in zip(values_cols, values)})
+                self.data[kwargs["time_col"]] = time_values
+                self.data.set_index(kwargs["time_col"], inplace=True)
+
+                # data_dict = {name: [data] for name, data in zip(values_cols, values)}
+                # data_dict[kwargs["time_col"]] = time_values  # Add time column
+                # self.data = pd.DataFrame(data_dict)
+                # self.data.set_index(kwargs["time_col"], inplace=True)
+
+
+
+                # print("col_values-1: ", type(col_values), col_values)
+
+                # self.data = col_values
+                # print("DATA:", self.data)
+
+                # time_col: str
+                # time_values: List[Any]
+                # values_cols: List[str]
+                # values: TimeSeriesData
+
+
+                # self.data = pd.DataFrame(
+                # {
+                #     name: data for name, data in zip(col_names, col_values)
+                # }
+                # )
+                # self.data = values_per_value_col.to_dict(orient='list')
+                # self.data = values_per_value_col
+                # if isinstance(col_values[0], pd.Series):
+                    # Extract individual columns from col_values
+                    # data_dict = {name: col_values[i] for i, name in enumerate(col_names)}
+                    # self.data = pd.DataFrame(data_dict)
+                # self.data.set_index(kwargs["time_col"], inplace=True)
+
 
                 # return MultivariateTimeSeries(**kwargs)
             
@@ -165,15 +222,18 @@ class TimeSeriesMixin(ABC):
                 #     cvs.append(value_col)
                 # col_values = cvs
                 # print("col_values: ", col_values)
-            else:
 
+            # if not a dataframe, so must be series
+            else:
                 for value_col in values_per_value_col:
-                    print("value_col: ", value_col)
-                    cvs.append(value_col)
-                col_values = cvs
-                # print("col_values: ", col_values)
+                    # print("value_col: ", value_col)
+                    date_idx_col.append(value_col)
+                col_values = date_idx_col
+                # print("col_values-2: ", type(col_values), col_values)
+        
+        # is univariate
         else:
-            # print("col_values: ", col_values)
+            # print("col_values-3: ", type(col_values), col_values)
             self.data = pd.DataFrame(
                 {
                     name: data for name, data in zip(col_names, col_values)
