@@ -132,7 +132,7 @@ class TimeSeriesFactory:
         #         return ts_params
         # return None  # Return None if it's not univariate or counter <= 1
 
-class TimeSeriesMixin(ABC):
+class old_TimeSeriesMixin(ABC):
     def __init__(self, **kwargs: TimeSeriesParameters):
         """Build a time series object from a time index and uni-variate or
         multi-variate time series data.
@@ -140,65 +140,27 @@ class TimeSeriesMixin(ABC):
         col_names, col_values = TimeSeriesMixin._get_col_names_and_values(
             **kwargs
         )
-        print("col_names: ", type(col_names), "col_values", type(col_values))
+        print("col_names: ", col_names)
+        print("col_values: ", col_values)
 
         if not TimeSeriesFactory._is_univariate_time_series(**kwargs):
             # Unpack column values for multivariate time series
-            date_idx_col = [col_values[0]]
-            # print("date_idx_col: ", date_idx_col)
+            cvs = [col_values[0]]
+            # print("cvs: ", cvs)
             # Exclude the time column values
             values_per_value_col = col_values[1]
-            # print(values_per_value_col)
 
             # check if we have a DataFrame
-            if type(col_values[1]) is pd.DataFrame:
+            if type(values_per_value_col) is pd.DataFrame:
                 # print("values_per_value_col: ", type(values_per_value_col))
                 # print(values_per_value_col)
 
-                # since DataFrame, return that
-                # self.data = values_per_value_col
-                # col_values_transposed = list(map(list, zip(*values_per_value_col)))
-                # print("col_values_transposed: ", type(col_values_transposed), col_values_transposed)
-                # mvts = pd.DataFrame({name: data for name, data in zip(col_names, values_per_value_col)})
-                # print("mvts: ", type(mvts), mvts)
-
-                time_col_index = col_names.index(kwargs["time_col"])
-
-                # Extract time column values
-                time_values = col_values[time_col_index]
-
-                # Remove the time column from col_names and col_values
-                del col_names[time_col_index]
-                del col_values[time_col_index]
-
-                # Set values_cols to remaining column names
-                values_cols = col_names
-
-                # Set values to remaining column values
-                values = col_values
-
-                # Create DataFrame from remaining data
-                self.data = pd.DataFrame({name: [data] for name, data in zip(values_cols, values)})
-                self.data[kwargs["time_col"]] = time_values
-                self.data.set_index(kwargs["time_col"], inplace=True)
-
-                # data_dict = {name: [data] for name, data in zip(values_cols, values)}
-                # data_dict[kwargs["time_col"]] = time_values  # Add time column
-                # self.data = pd.DataFrame(data_dict)
-                # self.data.set_index(kwargs["time_col"], inplace=True)
-
-
-
-                # print("col_values-1: ", type(col_values), col_values)
+                # # since DataFrame, return that
+                # # self.data = values_per_value_col
+                # print("col_values-1: ", type(col_values))
 
                 # self.data = col_values
                 # print("DATA:", self.data)
-
-                # time_col: str
-                # time_values: List[Any]
-                # values_cols: List[str]
-                # values: TimeSeriesData
-
 
                 # self.data = pd.DataFrame(
                 # {
@@ -223,17 +185,19 @@ class TimeSeriesMixin(ABC):
                 # col_values = cvs
                 # print("col_values: ", col_values)
 
-            # if not a dataframe, so must be series
+                self.time_col = kwargs['time_col']
+                self.time_values = kwargs['time_values']
+                self.values_cols = kwargs['values_cols']
+                self.values = kwargs['values']
+                self.data = pd.DataFrame({col: vals for col, vals in zip(self.values_cols, self.values)}, index=self.time_values)
             else:
                 for value_col in values_per_value_col:
-                    # print("value_col: ", value_col)
-                    date_idx_col.append(value_col)
-                col_values = date_idx_col
-                # print("col_values-2: ", type(col_values), col_values)
-        
-        # is univariate
+                    print("value_col: ", value_col)
+                    cvs.append(value_col)
+                col_values = cvs
+                print("col_values-2: ", type(col_values), col_values)
         else:
-            # print("col_values-3: ", type(col_values), col_values)
+            print("col_values-3: ", type(col_values), col_values)
             self.data = pd.DataFrame(
                 {
                     name: data for name, data in zip(col_names, col_values)
@@ -341,6 +305,17 @@ class TimeSeriesMixin(ABC):
         """
 
         return self.data[-forecasting_step:]
+
+class TimeSeriesMixin:
+    "from https://chatgpt.com/c/fa331693-fa17-4397-be72-a1b5413c6a41"
+    def __init__(self, **kwargs: TimeSeriesParameters):
+        self.time_col = kwargs['time_col']
+        self.time_values = kwargs['time_values']
+        self.values_cols = kwargs['values_cols']
+        self.values = kwargs['values']
+        self.data = pd.DataFrame({col: vals for col, vals in zip(self.values_cols, self.values)}, index=self.time_values)
+
+
 
 class UnivariateTimeSeries(TimeSeriesMixin):
 
@@ -780,6 +755,15 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         # print("values: \n", len(values_num))
         
 
+        time_col = X_train_df.index.name
+        time_values = X_train_df.index.tolist()
+        values_cols = X_train_df.columns.tolist()
+        values = []
+        for col in X_train_df.columns:
+            print("col:", col)
+            print("X_train_df[col]: ", X_train_df[col])
+            values.append(X_train_df[col].tolist())
+
         # last column
         y_train_df = uts_sml_df.iloc[:, [-1]]
         
@@ -787,9 +771,8 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             time_col=df.index.name,
             time_values=time_values,
             values_cols=values_cols,
-            values=values_num
+            values=values
         )
-
 
     def old_augment_data(self, forecasting_step: int, prior_observations: int) -> pd.DataFrame:
         """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
@@ -1219,9 +1202,9 @@ class MultivariateTimeSeries(TimeSeriesMixin):
         """Return a univariate time series of the given column name."""
         return UnivariateTimeSeries(
             time_col=self.data.index.name,
-            time_values=self.data.index,
-            values_cols=col_name,
-            values=self.data[col_name].values
+            time_values=self.data.index.tolist(),
+            values_cols=[col_name],
+            values=self.data[col_name].tolist()
         )
     
     def get_as_df(self) -> pd.DataFrame:
