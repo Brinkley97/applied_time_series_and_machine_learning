@@ -152,7 +152,7 @@ class old_TimeSeriesMixin(ABC):
 
             # check if we have a DataFrame
             if type(values_per_value_col) is pd.DataFrame:
-                # print("values_per_value_col: ", type(values_per_value_col))
+                print("values_per_value_col: ", type(values_per_value_col))
                 # print(values_per_value_col)
 
                 # # since DataFrame, return that
@@ -185,11 +185,11 @@ class old_TimeSeriesMixin(ABC):
                 # col_values = cvs
                 # print("col_values: ", col_values)
 
-                self.time_col = kwargs['time_col']
-                self.time_values = kwargs['time_values']
-                self.values_cols = kwargs['values_cols']
-                self.values = kwargs['values']
-                self.data = pd.DataFrame({col: vals for col, vals in zip(self.values_cols, self.values)}, index=self.time_values)
+                # self.time_col = kwargs['time_col']
+                # self.time_values = kwargs['time_values']
+                # self.values_cols = kwargs['values_cols']
+                # self.values = kwargs['values']
+                # self.data = pd.DataFrame({col: vals for col, vals in zip(self.values_cols, self.values)}, index=self.time_values)
             else:
                 for value_col in values_per_value_col:
                     print("value_col: ", value_col)
@@ -308,14 +308,68 @@ class old_TimeSeriesMixin(ABC):
 
 class TimeSeriesMixin:
     "from https://chatgpt.com/c/fa331693-fa17-4397-be72-a1b5413c6a41"
+
     def __init__(self, **kwargs: TimeSeriesParameters):
-        self.time_col = kwargs['time_col']
-        self.time_values = kwargs['time_values']
-        self.values_cols = kwargs['values_cols']
-        self.values = kwargs['values']
-        self.data = pd.DataFrame({col: vals for col, vals in zip(self.values_cols, self.values)}, index=self.time_values)
+
+        col_names, col_values, df = TimeSeriesMixin._get_col_names_and_values(
+            **kwargs
+        )
+        # print("col_names: ", col_names)
+        # print("col_values: ", col_values)
+        # print()
+
+        if not TimeSeriesFactory._is_univariate_time_series(**kwargs):
+            time_col, time_values, values_cols, values = df[0], df[1], df[2], df[3]
+            # print("time_col: ", time_col)
+            # print("time_values: ", time_values)
+            # print("values_cols: ", values_cols)
+            # values = sum(df_values, [])
+            self.data = pd.DataFrame()
+            # print("values: ", type(values), values)
+            for values_idx in range(len(values)):
+                nth_col = values[values_idx]
+                # print("nth_col: ", type(nth_col), nth_col)
+                self.data[values_cols[values_idx]] = nth_col
+                # print("self.data: ", type(self.data), self.data)
+                self.data.index.name = time_col
+            print()
+            print()
+
+            # self.data = pd.DataFrame({col: vals for col, vals in zip(values_cols, value)})
+            # self.data.set_index(kwargs["time_col"], inplace=True)
+        if TimeSeriesFactory._is_univariate_time_series(**kwargs):
+            self.data = pd.DataFrame(
+                {
+                    name: data for name, data in zip(col_names, col_values)
+                }
+            )
+            self.data.set_index(kwargs["time_col"], inplace=True)
+    
+    @staticmethod
+    def _get_col_names_and_values(**kwargs: TimeSeriesParameters) -> Tuple[List[str], List[Any]]:
+        """Get the column names and values from the time series parameters."""
+        
+        time_col = kwargs["time_col"]
+        time_values = kwargs["time_values"]
+        values_cols = kwargs["values_cols"]
+        values = kwargs["values"]
 
 
+        if isinstance(values_cols, list):
+            col_names = [time_col] + values_cols
+        elif isinstance(values_cols, str):
+            col_names = [time_col, values_cols]
+        else:
+            raise TypeError(
+                "Values columns must be a list or a string."
+                + f" Received: {type(values_cols)}"
+            )
+
+        col_values = [time_values, values]
+
+        df = [time_col, time_values, values_cols, values]
+
+        return col_names, col_values, df
 
 class UnivariateTimeSeries(TimeSeriesMixin):
 
@@ -748,21 +802,22 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         #     expand_values_col.extend([values_cols] * len(values_row))
         
 
-        # values_cols = lag_col_names[:prior_observations]
-        # print("expand_values_col: \n", len(expand_values_col))
+        # values = lag_col_names[:prior_observations]
+        # print("values-1: \n", len(values))
 
         values_num = X_train_df
         # print("values: \n", len(values_num))
         
 
-        time_col = X_train_df.index.name
-        time_values = X_train_df.index.tolist()
-        values_cols = X_train_df.columns.tolist()
+        # time_col = X_train_df.index.name
+        # time_values = X_train_df.index.tolist()
+        # values_cols = X_train_df.columns.tolist()
         values = []
         for col in X_train_df.columns:
-            print("col:", col)
-            print("X_train_df[col]: ", X_train_df[col])
+            # print("col:", col)
+            # print("X_train_df[col]: ", X_train_df[col])
             values.append(X_train_df[col].tolist())
+        # print("values-1: \n", len(values[0]))
 
         # last column
         y_train_df = uts_sml_df.iloc[:, [-1]]
@@ -1186,7 +1241,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return normalized_uts
 
-
 class MultivariateTimeSeries(TimeSeriesMixin):
     __name__ = "MultivariateTimeSeries"
 
@@ -1252,7 +1306,6 @@ class MultivariateTimeSeries(TimeSeriesMixin):
         # Display the plot
         plt.legend()
         plt.show()
-
 
 if __name__ == "__main__":
     uts = TimeSeriesFactory.create_time_series(
