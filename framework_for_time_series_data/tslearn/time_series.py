@@ -646,7 +646,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return order_k_diff_uts
     
-    def data_augment_to_mvts(self, forecasting_step: int, prior_observations: int) -> tuple:
+    def data_augment_to_mvts(self, forecasting_step: int, prior_observations: int) -> Tuple[MultivariateTimeSeries, ...]:
         """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
 
         Parameters:
@@ -691,7 +691,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             uts_sml_df.dropna(inplace=True)
 
         # colums to use to make prediction for last col
-        print("uts_sml_df: ",uts_sml_df)
         X_train_df = uts_sml_df.iloc[:, :forecasting_step]
 
         X_values = []
@@ -699,7 +698,6 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             X_values.append(X_train_df[col].tolist())
 
         y_train_df = uts_sml_df.iloc[:, -prior_observations:]
-        print(y_train_df)
         y_values = []
         for col in y_train_df.columns:
             y_values.append(y_train_df[col].tolist())
@@ -709,13 +707,13 @@ class UnivariateTimeSeries(TimeSeriesMixin):
                     time_values=X_train_df.index,
                     values_cols=lag_col_names[: forecasting_step],
                     values=X_values
-                ),
+                    ),
                 MultivariateTimeSeries(
                     time_col=df.index.name,
                     time_values=y_train_df.index,
                     values_cols=lag_col_names[forecasting_step:],
                     values=y_values
-                )
+                    )
                 )
         # if get_train_or_test_mvts == "Train":
         #     return MultivariateTimeSeries(
@@ -1174,6 +1172,39 @@ class MultivariateTimeSeries(TimeSeriesMixin):
         # Display the plot
         plt.legend()
         plt.show()
+    
+    def data_augment_to_test(self, y_train_mvts: MultivariateTimeSeries, forecasting_step: int, prior_observations: int) -> Tuple[MultivariateTimeSeries, ...]:
+        """Get docstring from data_augment_to_mvts in UvTS class. Adjust for here."""
+        X_train_df = self.get_as_df()
+        y_train_df = y_train_mvts.get_as_df()
+        df = pd.concat([X_train_df, y_train_df], axis=1)
+        lag_col_names = list(df.columns.values)
+
+        predict_X_test_df = df.iloc[[-forecasting_step], -forecasting_step:]
+        X_values = []
+        for col in predict_X_test_df.columns:
+            X_values.append(predict_X_test_df[col].tolist())
+
+        predict_y_test_df = df.iloc[[-1], -prior_observations:]
+        y_values = []
+        for col in predict_y_test_df.columns:
+            y_values.append(predict_y_test_df[col].tolist())
+        
+        return (MultivariateTimeSeries(
+                    time_col=df.index.name,
+                    time_values=predict_X_test_df.index,
+                    values_cols=lag_col_names[: forecasting_step],
+                    values=X_values
+                    ),
+                MultivariateTimeSeries(
+                    time_col=df.index.name,
+                    time_values=predict_y_test_df.index,
+                    values_cols=lag_col_names[forecasting_step:],
+                    values=y_values
+                    )
+                )
+        
+        # return predict_X_test_df, predict_y_test_df
 
 if __name__ == "__main__":
     uts = TimeSeriesFactory.create_time_series(
