@@ -1,27 +1,9 @@
-import matplotx
 import torch
 
-import numpy as np
 import pandas as pd
 
 import torch.nn as nn
 import matplotlib.pyplot as plt
-
-from abc import ABC
-from math import sqrt
-from typing import List
-from abc import abstractmethod
-from dataclasses import dataclass
-
-from statsmodels.tsa.ar_model import AutoReg
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-
-
-from constants import Number, TimeSeriesData
-from time_series import UnivariateTimeSeries
-
-from sklearn.metrics import mean_squared_error, max_error, mean_absolute_error, mean_absolute_percentage_error
 
 class MLP(nn.Module):
     def __name__(self):
@@ -62,12 +44,16 @@ class MLP(nn.Module):
 
 
         """
-        X_train = torch.tensor(X.values, dtype=torch.float32)
-        y_train = torch.tensor(y.values, dtype=torch.float32)
+        X_train = torch.tensor(X.values, require_grad=True, dtype=torch.float32)
+        y_train = torch.tensor(y.values, require_grad=True, dtype=torch.float32)
 
         criterion, optimizer, epochs = config
 
         for epoch in range(epochs):
+            # Set model to training model which sets all parameters that require gradients
+            # to require gradients
+            self.train()
+
             # Forward pass
             outputs = self(X_train)
             loss = criterion(outputs, y_train)

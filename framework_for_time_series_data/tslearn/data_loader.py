@@ -46,6 +46,22 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
         values=stock_df[independent_variable].values
     )
 
+def build_downloaded_stock_uts(FILE_NAME: str, independent_variable: str) -> UnivariateTimeSeries:
+    BASE = '/Users/brinkley97/Documents/development/'
+    DATASETS = 'applied_time_series_and_machine_learning/datasets/yahoo_finance/'
+    FILE = BASE + DATASETS + FILE_NAME + '.csv'
+    stock_df = pd.read_csv(FILE)
+    
+
+    return UnivariateTimeSeries(
+        time_col="Date",
+        time_values=stock_df.index,
+        values_cols=independent_variable,
+        values=stock_df[independent_variable].values
+    )
+
+
+
 def build_air_temperature_uts() -> UnivariateTimeSeries:
     data_df = pd.read_csv("../../datasets/daily-min-temperatures.csv")
 

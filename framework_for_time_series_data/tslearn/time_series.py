@@ -646,15 +646,20 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return order_k_diff_uts
     
-    def data_augment_to_mvts(self, forecasting_step: int, prior_observations: int) -> Tuple[MultivariateTimeSeries, ...]:
-        """Splits a given UTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
+    def data_augment_to_mvts(self, prior_observations: int, forecasting_step: int) -> Tuple[MultivariateTimeSeries, ...]:
+        """Splits a given UvTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
 
         Parameters:
-        prior_observations -- py int (of all observations before we get to where we want to start making the predictions)
-        forecasting_step -- py int (of how far out to forecast, 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps)
+        prior_observations: `int`
+            All observations before we get to where we want to start making the predictions.
+
+        forecasting_step: `int`
+            How far out to forecast, 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps. 
+            See data to accurately state how far to forecast.
 
         Return:
-        agg.values -- np array (of new sml data)
+        Tuple[MultivariateTimeSeries, ...] 
+            Training data for both X and y
         """
 
         df = self.data[self.get_value_col_name]
