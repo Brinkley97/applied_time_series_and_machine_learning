@@ -5,7 +5,69 @@ import pandas as pd
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
-class MLP(nn.Module):
+from abc import ABC
+from abc import abstractmethod
+from dataclasses import dataclass
+
+# Define the abstract base class
+@dataclass
+class ML_MODELS(ABC, nn.Module):
+    """Abstract implementation of a model. Each specified model inherits from this base class.
+
+    Methods decorated with @abstractmethod must be implemented; if not, the interpreter will throw an error. Methods not decorated will be shared by all other classes that inherit from Model.
+    """
+
+    def __name__(self):
+        return "ML MODEL BASE"
+    
+    @abstractmethod
+    def forward():
+        pass
+    
+    def train_model(self, X: pd.DataFrame, y: pd.DataFrame, loss_fn: torch.nn.Module, optimizer: torch.optim.Optimizer):
+        """Train the MLP for #epoch
+
+            Parameters
+            ----------
+            X: `pd.DataFrame` 
+                Input data tensor
+
+            y: `pd.DataFrame`
+                Target data tensor
+
+            config: `py list`
+                criterion: `torch.nn.Module`
+                    Loss criterion
+
+                optimize: `torch.optim.Optimizer`
+                    Optimization algorithm
+        """
+
+        X_train = torch.tensor(X, requires_grad=True, dtype=torch.float32)
+        y_train = torch.tensor(y, requires_grad=True, dtype=torch.float32)
+
+        # Set model to training mode
+        self.train()  # Set model to training model which sets all parameters that require gradients to require gradients
+
+        # 1. Forward pass
+        y_preds = self.forward(X_train)
+
+        # 2. Loss
+        train_loss = loss_fn(y_preds, y_train)
+
+        # 3. Optimizer zero grad to erase or to zero out gradiens to between 0 - 1
+        # Get a fresh start every epoch instead of increasing every time... 1, 2, 3, ...
+        optimizer.zero_grad()
+
+        # 4. Backward pass- Backpropagation
+        train_loss.backward()
+
+        # 5. Steps the optimizers (perform gradient descent)
+        optimizer.step()
+
+        print(self.state_dict())
+
+class MLP(ML_MODELS):
     def __name__(self):
         return "MLP"
 
@@ -50,10 +112,6 @@ class MLP(nn.Module):
         criterion, optimizer, epochs = config
 
         for epoch in range(epochs):
-            # Set model to training model which sets all parameters that require gradients
-            # to require gradients
-            self.train()
-
             # Forward pass
             outputs = self(X_train)
             loss = criterion(outputs, y_train)
