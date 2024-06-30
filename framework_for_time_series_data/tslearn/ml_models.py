@@ -1,17 +1,17 @@
 import torch
 
+
 import pandas as pd
 
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
 from abc import ABC
+from typing import List
 from abc import abstractmethod
-from dataclasses import dataclass
 
 # Define the abstract base class
-@dataclass
-class ML_MODELS(ABC, nn.Module):
+class Model(ABC, nn.Module):
     """Abstract implementation of a model. Each specified model inherits from this base class.
 
     Methods decorated with @abstractmethod must be implemented; if not, the interpreter will throw an error. Methods not decorated will be shared by all other classes that inherit from Model.
@@ -20,19 +20,23 @@ class ML_MODELS(ABC, nn.Module):
     def __name__(self):
         return "ML MODEL BASE"
     
-    @abstractmethod
-    def forward():
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod # Method is required in sub classes as it'll differ per sub class
+    def forward_pass():
         pass
     
-    def train_model(self, X: pd.DataFrame, y: pd.DataFrame, loss_fn: torch.nn.Module, optimizer: torch.optim.Optimizer):
-        """Train the MLP for #epoch
+    # Method is NOT required in sub classes as it's the same for all sub classes
+    def train_model(self, X_train_df: pd.DataFrame, y_train_df: pd.DataFrame, config: list):
+        """Train all models #epoch
 
             Parameters
             ----------
-            X: `pd.DataFrame` 
+            X_train_df: `pd.DataFrame` 
                 Input data tensor
 
-            y: `pd.DataFrame`
+            y_train_df: `pd.DataFrame`
                 Target data tensor
 
             config: `py list`
@@ -41,19 +45,27 @@ class ML_MODELS(ABC, nn.Module):
 
                 optimize: `torch.optim.Optimizer`
                     Optimization algorithm
+            
+            Return
+            ------
+            Tuple[list]: 
+                train_y_preds: The model's train predictions
+                train_loss: The loss evaluation metric
         """
 
-        X_train = torch.tensor(X, requires_grad=True, dtype=torch.float32)
-        y_train = torch.tensor(y, requires_grad=True, dtype=torch.float32)
+        X_train = torch.tensor(X_train_df.values, requires_grad=True, dtype=torch.float32)
+        y_train = torch.tensor(y_train_df.values, requires_grad=True, dtype=torch.float32)
+
+        loss_fn, optimizer = config
 
         # Set model to training mode
         self.train()  # Set model to training model which sets all parameters that require gradients to require gradients
 
         # 1. Forward pass
-        y_preds = self.forward(X_train)
+        train_y_preds = self.forward_pass(X_train)
 
         # 2. Loss
-        train_loss = loss_fn(y_preds, y_train)
+        train_loss = loss_fn(train_y_preds, y_train)
 
         # 3. Optimizer zero grad to erase or to zero out gradiens to between 0 - 1
         # Get a fresh start every epoch instead of increasing every time... 1, 2, 3, ...
@@ -64,10 +76,83 @@ class ML_MODELS(ABC, nn.Module):
 
         # 5. Steps the optimizers (perform gradient descent)
         optimizer.step()
+    
+        return train_y_preds, train_loss
 
-        print(self.state_dict())
+    def interpolate_predictions(self, X_test_df: pd.DataFrame, y_test_df: pd.DataFrame, config: list):
+        """Perform interpolation to predict values within the existing range of data points (so test data), thus predict in-sample values.
 
-class MLP(ML_MODELS):
+            Parameters
+            ----------
+            X_train_df: `pd.DataFrame` 
+                Input data tensor
+
+            y_train_df: `pd.DataFrame`
+                Target data tensor
+
+            config: `py list`
+                criterion: `torch.nn.Module`
+                    Loss criterion
+
+                optimize: `torch.optim.Optimizer`
+                    Optimization algorithm
+            
+            Return
+            ------
+            Tuple[list]: 
+                test_y_preds: The model's test predictions
+                test_loss: The loss evaluation metric
+        """
+
+        X_test = torch.tensor(X_test_df.values, dtype=torch.float32)
+        y_test = torch.tensor(y_test_df.values, dtype=torch.float32)
+
+        loss_fn, _ = config
+
+        ### Testing
+        self.eval() # turns off gradient tracking to make code faster as we're NOT saving gradients
+
+        # Predictions
+        with torch.inference_mode():
+
+            # 1. Foward pass
+            test_y_preds = self.forward_pass(X_test)
+
+            # 2. Calculate test loss
+            test_loss = loss_fn(test_y_preds, y_test)
+        
+        return test_y_preds, test_loss
+    
+
+    def extrapolate_forecasts(self, X_test_df: pd.DataFrame):
+        """Perform extrapolation to predict values beyond the existing range of data points (so no test data), thus forecast out-sample values.
+
+            Parameters
+            ----------
+            X_train_df: `pd.DataFrame` 
+                Input data tensor
+            
+            Return
+            ------ 
+                test_y_preds: `list`
+                    The model's forecasts
+        """
+
+        X_test = torch.tensor(X_test_df.values, dtype=torch.float32)
+
+        ### Testing
+        self.eval() # turns off gradient tracking to make code faster as we're NOT saving gradients
+
+        # Predictions
+        with torch.inference_mode():
+
+            # 1. Foward pass
+            test_y_preds = self.forward_pass(X_test)
+        
+        return test_y_preds
+
+
+class MLP(Model):
     def __name__(self):
         return "MLP"
 
@@ -77,74 +162,34 @@ class MLP(ML_MODELS):
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_size, output_size)
         
-
-    def forward(self, x):
+    def forward_pass(self, x):
         fc1_out = self.fc1(x)
         relu_out = self.relu(fc1_out)
         fc2_out = self.fc2(relu_out)
         return fc2_out
-    
-    def train(self, X, y, config: list):
-        """Train the MLP for #epoch
-
-        Parameters
-        ----------
-        X: `pd.DataFrame` 
-            Input data tensor
-
-        y: `pd.DataFrame`
-            Target data tensor
-
-        config: `py list`
-            criterion: `torch.nn.Module`
-                Loss criterion
-
-            optimize: `torch.optim.Optimizer`
-                Optimization algorithm
-
-            epochs: `int` 
-                Number of training epochs
-
-
-        """
-        X_train = torch.tensor(X.values, dtype=torch.float32)
-        y_train = torch.tensor(y.values, dtype=torch.float32)
-
-        criterion, optimizer, epochs = config
-
-        for epoch in range(epochs):
-            # Forward pass
-            outputs = self(X_train)
-            loss = criterion(outputs, y_train)
-            
-            # Backward pass and optimization
-            optimizer.zero_grad()
-            loss.backward() # calculate the gradients
-            optimizer.step() # update the weights
-            
-            if (epoch+1) % 50 == 0:
-                print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item()}')
-    
-    def predict(self, X_test_df: pd.DataFrame):
-        """
-        data_tensor: `pd.DataFrame`
-            Test data
-        """
-        data_tensor = torch.tensor(X_test_df.values, dtype=torch.float32)
-        yhat = self(data_tensor)  # Perform forward pass
         
-        # Extract predicted values for each sample in the batch
-        predicted_values = yhat.squeeze(dim=1).tolist()  # Convert tensor to list of predicted values
-        print("Predicted Outputs:", predicted_values)
-        
-        return predicted_values
+class LinearRegressionModel(Model, nn.Module):
+    def __init__(self, stabilizer: int):
+        super(LinearRegressionModel, self).__init__()
+        # Create random seed because we initialize randomly and want to stablize our random values
+        # stablize as in keep random #s same; remove manual_seed() and model params will change
+        # helps with reproducing works
+        torch.manual_seed(stabilizer)
 
-class CNN(nn.Module):
+        # Randomly initialize our learnable model parameters
+        self.weights = nn.Parameter(torch.randn(1, requires_grad=True, dtype=torch.float32))
+        self.bias = nn.Parameter(torch.randn(1, requires_grad=True, dtype=torch.float32))
+
+    def forward_pass(self, input_x: torch.Tensor) -> torch.Tensor:
+        y = self.weights * input_x + self.bias
+        return y
+        
+class CNN(Model, nn.Module):
     def __name__(self):
         return "CNN"
     
     def __init__(self, previous_steps: int, hidden_size: int, N_filters: int, kernel_size: int, activation_type: str, n_variables: int, pool_size: int, forecast_steps: int):
-        super(CNN, self).__init__
+        super(CNN, self).__init__()
         self.fc1 = nn.Linear(previous_steps, hidden_size)
         self.conv_1d = nn.Conv1D(filter=N_filters, kernel_size=kernel_size, activation_type=activation_type)
         self.max_pool = nn.MaxPool1d(pool_size)
