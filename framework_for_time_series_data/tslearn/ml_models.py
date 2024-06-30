@@ -10,6 +10,7 @@ class MLP(nn.Module):
         return "MLP"
 
     def __init__(self, input_size: int, hidden_size: int, output_size: int):
+        super(MLP, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_size, output_size)
@@ -44,16 +45,12 @@ class MLP(nn.Module):
 
 
         """
-        X_train = torch.tensor(X.values, require_grad=True, dtype=torch.float32)
-        y_train = torch.tensor(y.values, require_grad=True, dtype=torch.float32)
+        X_train = torch.tensor(X.values, dtype=torch.float32)
+        y_train = torch.tensor(y.values, dtype=torch.float32)
 
         criterion, optimizer, epochs = config
 
         for epoch in range(epochs):
-            # Set model to training model which sets all parameters that require gradients
-            # to require gradients
-            self.train()
-
             # Forward pass
             outputs = self(X_train)
             loss = criterion(outputs, y_train)
@@ -66,9 +63,9 @@ class MLP(nn.Module):
             if (epoch+1) % 50 == 0:
                 print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item()}')
     
-    def predict(self, X_test_df: pd.DataFrame, input_size: int):
+    def predict(self, X_test_df: pd.DataFrame):
         """
-        data_tensor: `torch.Tensor`
+        data_tensor: `pd.DataFrame`
             Test data
         """
         data_tensor = torch.tensor(X_test_df.values, dtype=torch.float32)
@@ -85,6 +82,7 @@ class CNN(nn.Module):
         return "CNN"
     
     def __init__(self, previous_steps: int, hidden_size: int, N_filters: int, kernel_size: int, activation_type: str, n_variables: int, pool_size: int, forecast_steps: int):
+        super(CNN, self).__init__
         self.fc1 = nn.Linear(previous_steps, hidden_size)
         self.conv_1d = nn.Conv1D(filter=N_filters, kernel_size=kernel_size, activation_type=activation_type)
         self.max_pool = nn.MaxPool1d(pool_size)
