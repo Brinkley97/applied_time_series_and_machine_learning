@@ -1,5 +1,5 @@
+import os
 import torch
-
 
 import pandas as pd
 
@@ -9,6 +9,12 @@ import matplotlib.pyplot as plt
 from abc import ABC
 from typing import List
 from abc import abstractmethod
+
+from tkinter.filedialog import askopenfilenames, askdirectory
+
+# TSLearn
+from data_loader import create_file_version
+
 
 # Define the abstract base class
 class Model(ABC, nn.Module):
@@ -154,7 +160,7 @@ class Model(ABC, nn.Module):
 
 class MLP(Model):
     def __name__(self):
-        return "MLP"
+        return "Multi-Layer Perceptron Model"
 
     def __init__(self, input_size: int, hidden_size: int, output_size: int):
         super(MLP, self).__init__()
@@ -169,6 +175,9 @@ class MLP(Model):
         return fc2_out
         
 class LinearRegressionModel(Model, nn.Module):
+    def __name__(self):
+        return "Linear Regression Model"
+    
     def __init__(self, stabilizer: int):
         super(LinearRegressionModel, self).__init__()
         # Create random seed because we initialize randomly and want to stablize our random values
@@ -205,3 +214,44 @@ class CNN(Model, nn.Module):
             fc2_out = self.fc2(flatten_out)
             fc3_out = self.fc3(fc2_out)
             return fc3_out
+
+class ModelFactory:
+    model_mapping = {
+            'mlp': MLP,
+            'lr': LinearRegressionModel,
+            'cnn': CNN
+        }
+    
+    def create_model(self, model_type, **kwargs):
+        if model_type in self.model_mapping:
+            return self.model_mapping[model_type](**kwargs)
+        else:
+            raise ValueError(f"Unknown model type: {model_type}. Pass in one of the following model types: {list(self.model_mapping.keys())}")
+    
+    @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
+    def save_model(model, model_name):
+        """Save a PyTorch model"""
+        
+        _, ext = os.path.splitext(model_name)
+        if ext in [".pt", ".pth"]:
+            print("Where to save model? Select the folder.")
+            model_path = askdirectory() + "/"
+            model_save_path = model_path + model_name
+            print("model save path: ", model_save_path)
+            updated_model_save_path = create_file_version(model_save_path)
+            torch.save(model.state_dict(), updated_model_save_path)
+            print(f"Model saved successfully at: {updated_model_save_path}")
+        else:
+            print(f"Cannot save model: the extension '{ext}' is incorrect. Should be '.pt' or '.pth'.")
+
+    
+    @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
+    def load_model(model, **kwargs):
+        # Update to select multiple files
+        files = askopenfilenames(title="Select file to load")
+        model_file = files[0]
+        model_to_load = model(**kwargs)
+        model_to_load.load_state_dict(torch.load(f=model_file))
+        return model_to_load
+
+        
