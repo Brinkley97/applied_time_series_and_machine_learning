@@ -1,3 +1,9 @@
+"""
+Detravious Jamari Brinkley (aka FitToCode)
+
+Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
+"""
+
 from typing import List, Tuple, NewType, Union, Any #, TypeAlias
 
 Number = Union[int, float]

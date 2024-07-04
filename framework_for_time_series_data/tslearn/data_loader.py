@@ -1,3 +1,9 @@
+"""
+Detravious Jamari Brinkley (aka FitToCode)
+
+Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
+"""
+
 import os.path
 
 import numpy as np
@@ -59,8 +65,6 @@ def build_downloaded_stock_uts(FILE_NAME: str, independent_variable: str) -> Uni
         values_cols=independent_variable,
         values=stock_df[independent_variable].values
     )
-
-
 
 def build_air_temperature_uts() -> UnivariateTimeSeries:
     data_df = pd.read_csv("../../datasets/daily-min-temperatures.csv")
@@ -165,7 +169,20 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
             values_cols="Observations",
             values=data_df["Observations"].values
         )
-
-
     else:
         print("File extension not supported yet. Contact me at dbrinkle@usc.edu so I can add support for this file extension.")
+
+def create_file_version(filename_with_path: str) -> str:
+    """Check if file exists. If so, update with new version.
+
+    https://stackoverflow.com/questions/13852700/create-file-but-if-name-exists-add-number
+    """
+    filename, extension = os.path.splitext(filename_with_path)
+    counter = 1
+    # print("Check file version --- ", filename_with_path)
+    while os.path.exists(filename_with_path):
+        # print(True)
+        filename_with_path = filename + "-v" + str(counter) + "" + extension
+        counter += 1
+
+        return filename_with_path

@@ -1,14 +1,29 @@
-import torch
+"""
+Detravious Jamari Brinkley (aka FitToCode)
 
+Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
+"""
+
+import os
+import torch
 
 import pandas as pd
 
+import tkinter as tk
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
 from abc import ABC
 from typing import List
 from abc import abstractmethod
+
+from tkinter.filedialog import askopenfilenames, askdirectory
+
+
+# TSLearn
+from data_loader import create_file_version
+# from time_series import df_to_tensor
+
 
 # Define the abstract base class
 class Model(ABC, nn.Module):
@@ -28,29 +43,29 @@ class Model(ABC, nn.Module):
         pass
     
     # Method is NOT required in sub classes as it's the same for all sub classes
-    def train_model(self, X_train_df: pd.DataFrame, y_train_df: pd.DataFrame, config: list):
+    def train_model(self, X_train_df: pd.DataFrame, y_train_df: pd.DataFrame, config: list) -> tuple[list]:
         """Train all models #epoch
 
-            Parameters
-            ----------
-            X_train_df: `pd.DataFrame` 
-                Input data tensor
+        Parameters
+        ----------
+        X_train_df: `pd.DataFrame` 
+            Input data tensor
 
-            y_train_df: `pd.DataFrame`
-                Target data tensor
+        y_train_df: `pd.DataFrame`
+            Target data tensor
 
-            config: `py list`
-                criterion: `torch.nn.Module`
-                    Loss criterion
+        config: `py list`
+            criterion: `torch.nn.Module`
+                Loss criterion
 
-                optimize: `torch.optim.Optimizer`
-                    Optimization algorithm
-            
-            Return
-            ------
-            Tuple[list]: 
-                train_y_preds: The model's train predictions
-                train_loss: The loss evaluation metric
+            optimize: `torch.optim.Optimizer`
+                Optimization algorithm
+        
+        Return
+        ------
+        tuple[list]: 
+            train_y_preds: The model's train predictions
+            train_loss: The loss evaluation metric
         """
 
         X_train = torch.tensor(X_train_df.values, requires_grad=True, dtype=torch.float32)
@@ -79,29 +94,29 @@ class Model(ABC, nn.Module):
     
         return train_y_preds, train_loss
 
-    def interpolate_predictions(self, X_test_df: pd.DataFrame, y_test_df: pd.DataFrame, config: list):
+    def interpolate_predictions(self, X_test_df: pd.DataFrame, y_test_df: pd.DataFrame, config: list) -> tuple[list]:
         """Perform interpolation to predict values within the existing range of data points (so test data), thus predict in-sample values.
 
-            Parameters
-            ----------
-            X_train_df: `pd.DataFrame` 
-                Input data tensor
+        Parameters
+        ----------
+        X_train_df: `pd.DataFrame` 
+            Input data tensor
 
-            y_train_df: `pd.DataFrame`
-                Target data tensor
+        y_train_df: `pd.DataFrame`
+            Target data tensor
 
-            config: `py list`
-                criterion: `torch.nn.Module`
-                    Loss criterion
+        config: `py list`
+            criterion: `torch.nn.Module`
+                Loss criterion
 
-                optimize: `torch.optim.Optimizer`
-                    Optimization algorithm
-            
-            Return
-            ------
-            Tuple[list]: 
-                test_y_preds: The model's test predictions
-                test_loss: The loss evaluation metric
+            optimize: `torch.optim.Optimizer`
+                Optimization algorithm
+        
+        Return
+        ------
+        Tuple[list]: 
+            test_y_preds: The model's test predictions
+            test_loss: The loss evaluation metric
         """
 
         X_test = torch.tensor(X_test_df.values, dtype=torch.float32)
@@ -123,19 +138,18 @@ class Model(ABC, nn.Module):
         
         return test_y_preds, test_loss
     
-
-    def extrapolate_forecasts(self, X_test_df: pd.DataFrame):
+    def extrapolate_forecasts(self, X_test_df: pd.DataFrame) -> list:
         """Perform extrapolation to predict values beyond the existing range of data points (so no test data), thus forecast out-sample values.
 
-            Parameters
-            ----------
-            X_train_df: `pd.DataFrame` 
-                Input data tensor
-            
-            Return
-            ------ 
-                test_y_preds: `list`
-                    The model's forecasts
+        Parameters
+        ----------
+        X_train_df: `pd.DataFrame` 
+            Input data tensor
+        
+        Returns
+        -------
+        test_y_preds: `list`
+                The model's forecasts
         """
 
         X_test = torch.tensor(X_test_df.values, dtype=torch.float32)
@@ -151,10 +165,9 @@ class Model(ABC, nn.Module):
         
         return test_y_preds
 
-
 class MLP(Model):
     def __name__(self):
-        return "MLP"
+        return "Multi-Layer Perceptron Model"
 
     def __init__(self, input_size: int, hidden_size: int, output_size: int):
         super(MLP, self).__init__()
@@ -169,6 +182,9 @@ class MLP(Model):
         return fc2_out
         
 class LinearRegressionModel(Model, nn.Module):
+    def __name__(self):
+        return "Linear Regression Model"
+    
     def __init__(self, stabilizer: int):
         super(LinearRegressionModel, self).__init__()
         # Create random seed because we initialize randomly and want to stablize our random values
@@ -205,3 +221,119 @@ class CNN(Model, nn.Module):
             fc2_out = self.fc2(flatten_out)
             fc3_out = self.fc3(fc2_out)
             return fc3_out
+
+class ModelFactory:
+    model_mapping = {
+            'mlp': MLP,
+            'lr': LinearRegressionModel,
+            'cnn': CNN
+        }
+    
+    def create_model(self, select_model: str, **kwargs) -> nn.Module:
+        """Create a PyTorch model
+        
+        Parameters
+        ----------
+        select_model: `str`
+            Select or input a key (ie: mlp) from model_mapping
+        
+        Returns
+        -------
+        self.model_mapping[select_model](**kwargs): `nn.Module`
+            The model of interests or
+            An error if pass in model that doesn't exists
+        """
+        if select_model in self.model_mapping:
+            return self.model_mapping[select_model](**kwargs)
+        else:
+            raise ValueError(f"Unknown model type: {select_model}. Pass in one of the following model types: {list(self.model_mapping.keys())}")
+    
+    @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
+    def save_model(model: nn.Module, model_name: str):
+        """Save a PyTorch model
+        
+        Parameters
+        ----------
+        model: `nn.Module`
+            The actual model
+        model_name: `str`
+            The file name
+        
+        Function
+        --------
+        create_file_version() -> str
+            Create a new file if file with same name exists 
+        
+        """
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
+        _, ext = os.path.splitext(model_name)
+        if ext in [".pt", ".pth"]:
+            print("Where to save model? Select the folder.")
+            model_path = askdirectory() + "/"
+            model_save_path = model_path + model_name
+            print("model save path: ", model_save_path)
+            updated_model_save_path = create_file_version(model_save_path)
+            torch.save(model.state_dict(), updated_model_save_path)
+            print(f"Model saved successfully at: {updated_model_save_path}")
+        else:
+            print(f"Cannot save model: the extension '{ext}' is incorrect. Should be '.pt' or '.pth'.")
+
+    @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
+    def load_model(model: nn.Module) -> nn.Module:
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
+        files = askopenfilenames(title="Select file to load")
+        model_file = files[0]
+        state_dict = torch.load(f=model_file)
+        missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+        if missing_keys:
+            print(f"Missing keys when loading the model: {missing_keys}")
+        if unexpected_keys:
+            print(f"Unexpected keys when loading the model: {unexpected_keys}")
+        return model
+    
+    @staticmethod
+    def compare_models(models: list[nn.Module], input_data_df: pd.DataFrame) -> bool:
+        """Compare predictions of multiple models that are the same (as in save model, load model, compare predictions of these models to ensure same) on the given input data.
+        
+        Parameters
+        ----------
+        models: `list` 
+            List of models to compare.
+            
+        input_data_df: `pd.DataFrame` 
+            The input data for making predictions. Usually it'll be the test_data
+        
+        Returns
+        -------
+        are_equal: `bool`
+            True if all models produce the same predictions, False otherwise.
+        """
+        if len(models) < 2:
+            raise ValueError("At least two models are required for comparison.")
+        
+        # Convert pd.DF to torch.tensor
+        input_data = torch.tensor(input_data_df.values, requires_grad=False, dtype=torch.float32)
+
+
+        # Append all predictions to the same list (without reseting list)
+        predictions = []
+        for model in models:
+            model.eval()
+            with torch.inference_mode():
+                predictions.append(model.forward_pass(input_data))
+        
+        are_equal = torch.equal(predictions[0], predictions[1]) # Compare element-wise of only first two model
+        # If are_equal returns True, then compare the remaining predictions to the first model
+        # Already compared the first two models (0 and 1, so start at 2)
+        for i in range(2, len(predictions)):
+            are_equal &= torch.equal(predictions[i], predictions[0]) # Auto break if are_equal returns False
+        
+        if are_equal:
+            print(f"All models ({models}) produce the same predictions.")
+        else:
+            print(f"Models ({models}) produce different predictions.")
+        
+
+        

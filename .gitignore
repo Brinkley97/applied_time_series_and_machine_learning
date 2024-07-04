@@ -12,6 +12,7 @@
 *.xlsx
 *.names
 *.DS_Store
+.DS_Store
 *.cpython-39
 *.cpython-39.pyc
 *checkpoint.ipynb

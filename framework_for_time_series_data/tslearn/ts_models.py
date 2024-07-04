@@ -1,3 +1,9 @@
+"""
+Detravious Jamari Brinkley (aka FitToCode)
+
+Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
+"""
+
 import matplotx
 import torch
 
@@ -130,7 +136,7 @@ class AR(Model):
             A list of lag values that are over a threshold to pass to autoregressive model
 
         Returns
-        ------
+        -------
         trained_ar_model: `statsmodel AutoReg model`
             A single trained autoregressive models with each differing by lag value
 
