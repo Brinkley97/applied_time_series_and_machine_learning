@@ -1,8 +1,14 @@
+"""
+Detravious Jamari Brinkley (aka FitToCode)
+
+Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
+"""
 import os
 import torch
 
 import pandas as pd
 
+import tkinter as tk
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
@@ -247,11 +253,17 @@ class ModelFactory:
     
     @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
     def load_model(model, **kwargs):
-        # Update to select multiple files
+        # NOTE: Update to select multiple files
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
         files = askopenfilenames(title="Select file to load")
         model_file = files[0]
-        model_to_load = model(**kwargs)
-        model_to_load.load_state_dict(torch.load(f=model_file))
-        return model_to_load
+        state_dict = torch.load(f=model_file)
+        missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+        if missing_keys:
+            print(f"Missing keys when loading the model: {missing_keys}")
+        if unexpected_keys:
+            print(f"Unexpected keys when loading the model: {unexpected_keys}")
+        return model
 
         
