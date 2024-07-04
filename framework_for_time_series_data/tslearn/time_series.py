@@ -1,4 +1,11 @@
-from __future__ import annotations
+"""
+Detravious Jamari Brinkley (aka FitToCode)
+
+Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
+"""
+
+from __future__ import annotations # must occur at the beginning of the file
+import torch
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,6 +15,7 @@ from abc import ABC, abstractmethod
 # test for stationarity
 from statsmodels.tsa.stattools import adfuller, bds
 from sklearn.model_selection import train_test_split
+
 
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
@@ -649,7 +657,8 @@ class UnivariateTimeSeries(TimeSeriesMixin):
     def data_augment_to_mvts(self, prior_observations: int, forecasting_step: int) -> Tuple[MultivariateTimeSeries, ...]:
         """Splits a given UvTS into multiple input rows where each input row has a specified number of timestamps and the output is a single timestamp.
 
-        Parameters:
+        Parameters
+        ----------
         prior_observations: `int`
             All observations before we get to where we want to start making the predictions.
 
@@ -657,7 +666,8 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             How far out to forecast, 1 only the next timestamp, 2 the next two timestamps, ... n the next n timestamps. 
             See data to accurately state how far to forecast.
 
-        Return:
+        Returns
+        -------
         Tuple[MultivariateTimeSeries, ...] 
             Training data for both X and y
         """
@@ -1135,6 +1145,14 @@ class MultivariateTimeSeries(TimeSeriesMixin):
     def get_as_df(self) -> pd.DataFrame:
         """Get the name and data."""
         return self.data
+    
+    # def df_to_tensor(self, df, requires_grad, torch_dtype) -> torch.Tensor:
+    #     """Convert DF to torch. Want to remove and use get_as_tensor() once I get running"""
+    #     return torch.tensor(df.data.values, requires_grad=requires_grad, dtype=torch_dtype)
+    
+    # def get_as_tensor(self, requires_grad, torch_dtype) -> torch.Tensor:
+    #     """Convert MvTS to torch tensor."""
+    #     return torch.tensor(self.data.values, requires_grad=requires_grad, dtype=torch_dtype)
     
     def _get_train_validation_test_split(
         self,

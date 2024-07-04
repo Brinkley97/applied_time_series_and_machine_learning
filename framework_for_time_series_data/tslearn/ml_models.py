@@ -3,6 +3,7 @@ Detravious Jamari Brinkley (aka FitToCode)
 
 Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
 """
+
 import os
 import torch
 
@@ -17,6 +18,7 @@ from typing import List
 from abc import abstractmethod
 
 from tkinter.filedialog import askopenfilenames, askdirectory
+
 
 # TSLearn
 from data_loader import create_file_version
@@ -41,7 +43,7 @@ class Model(ABC, nn.Module):
         pass
     
     # Method is NOT required in sub classes as it's the same for all sub classes
-    def train_model(self, X_train_df: pd.DataFrame, y_train_df: pd.DataFrame, config: list):
+    def train_model(self, X_train_df: pd.DataFrame, y_train_df: pd.DataFrame, config: list) -> tuple[list]:
         """Train all models #epoch
 
         Parameters
@@ -61,7 +63,7 @@ class Model(ABC, nn.Module):
         
         Return
         ------
-        Tuple[list]: 
+        tuple[list]: 
             train_y_preds: The model's train predictions
             train_loss: The loss evaluation metric
         """
@@ -92,7 +94,7 @@ class Model(ABC, nn.Module):
     
         return train_y_preds, train_loss
 
-    def interpolate_predictions(self, X_test_df: pd.DataFrame, y_test_df: pd.DataFrame, config: list):
+    def interpolate_predictions(self, X_test_df: pd.DataFrame, y_test_df: pd.DataFrame, config: list) -> tuple[list]:
         """Perform interpolation to predict values within the existing range of data points (so test data), thus predict in-sample values.
 
         Parameters
@@ -136,8 +138,7 @@ class Model(ABC, nn.Module):
         
         return test_y_preds, test_loss
     
-
-    def extrapolate_forecasts(self, X_test_df: pd.DataFrame):
+    def extrapolate_forecasts(self, X_test_df: pd.DataFrame) -> list:
         """Perform extrapolation to predict values beyond the existing range of data points (so no test data), thus forecast out-sample values.
 
         Parameters
@@ -147,8 +148,8 @@ class Model(ABC, nn.Module):
         
         Returns
         -------
-            test_y_preds: `list`
-                    The model's forecasts
+        test_y_preds: `list`
+                The model's forecasts
         """
 
         X_test = torch.tensor(X_test_df.values, dtype=torch.float32)
@@ -163,7 +164,6 @@ class Model(ABC, nn.Module):
             test_y_preds = self.forward_pass(X_test)
         
         return test_y_preds
-
 
 class MLP(Model):
     def __name__(self):
@@ -229,16 +229,44 @@ class ModelFactory:
             'cnn': CNN
         }
     
-    def create_model(self, model_type, **kwargs):
-        if model_type in self.model_mapping:
-            return self.model_mapping[model_type](**kwargs)
+    def create_model(self, select_model: str, **kwargs) -> nn.Module:
+        """Create a PyTorch model
+        
+        Parameters
+        ----------
+        select_model: `str`
+            Select or input a key (ie: mlp) from model_mapping
+        
+        Returns
+        -------
+        self.model_mapping[select_model](**kwargs): `nn.Module`
+            The model of interests or
+            An error if pass in model that doesn't exists
+        """
+        if select_model in self.model_mapping:
+            return self.model_mapping[select_model](**kwargs)
         else:
-            raise ValueError(f"Unknown model type: {model_type}. Pass in one of the following model types: {list(self.model_mapping.keys())}")
+            raise ValueError(f"Unknown model type: {select_model}. Pass in one of the following model types: {list(self.model_mapping.keys())}")
     
     @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
-    def save_model(model, model_name):
-        """Save a PyTorch model"""
+    def save_model(model: nn.Module, model_name: str):
+        """Save a PyTorch model
         
+        Parameters
+        ----------
+        model: `nn.Module`
+            The actual model
+        model_name: `str`
+            The file name
+        
+        Function
+        --------
+        create_file_version() -> str
+            Create a new file if file with same name exists 
+        
+        """
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
         _, ext = os.path.splitext(model_name)
         if ext in [".pt", ".pth"]:
             print("Where to save model? Select the folder.")
@@ -251,10 +279,8 @@ class ModelFactory:
         else:
             print(f"Cannot save model: the extension '{ext}' is incorrect. Should be '.pt' or '.pth'.")
 
-    
     @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
-    def load_model(model, **kwargs):
-        # NOTE: Update to select multiple files
+    def load_model(model: nn.Module) -> nn.Module:
         root = tk.Tk()
         root.withdraw()  # Hide the main window
         files = askopenfilenames(title="Select file to load")
@@ -268,7 +294,7 @@ class ModelFactory:
         return model
     
     @staticmethod
-    def compare_models(models, input_data_df):
+    def compare_models(models: list[nn.Module], input_data_df: pd.DataFrame) -> bool:
         """Compare predictions of multiple models that are the same (as in save model, load model, compare predictions of these models to ensure same) on the given input data.
         
         Parameters
@@ -287,6 +313,7 @@ class ModelFactory:
         if len(models) < 2:
             raise ValueError("At least two models are required for comparison.")
         
+        # Convert pd.DF to torch.tensor
         input_data = torch.tensor(input_data_df.values, requires_grad=False, dtype=torch.float32)
 
 
