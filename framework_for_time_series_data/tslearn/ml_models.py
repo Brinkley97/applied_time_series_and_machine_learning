@@ -20,6 +20,7 @@ from tkinter.filedialog import askopenfilenames, askdirectory
 
 # TSLearn
 from data_loader import create_file_version
+# from time_series import df_to_tensor
 
 
 # Define the abstract base class
@@ -43,26 +44,26 @@ class Model(ABC, nn.Module):
     def train_model(self, X_train_df: pd.DataFrame, y_train_df: pd.DataFrame, config: list):
         """Train all models #epoch
 
-            Parameters
-            ----------
-            X_train_df: `pd.DataFrame` 
-                Input data tensor
+        Parameters
+        ----------
+        X_train_df: `pd.DataFrame` 
+            Input data tensor
 
-            y_train_df: `pd.DataFrame`
-                Target data tensor
+        y_train_df: `pd.DataFrame`
+            Target data tensor
 
-            config: `py list`
-                criterion: `torch.nn.Module`
-                    Loss criterion
+        config: `py list`
+            criterion: `torch.nn.Module`
+                Loss criterion
 
-                optimize: `torch.optim.Optimizer`
-                    Optimization algorithm
-            
-            Return
-            ------
-            Tuple[list]: 
-                train_y_preds: The model's train predictions
-                train_loss: The loss evaluation metric
+            optimize: `torch.optim.Optimizer`
+                Optimization algorithm
+        
+        Return
+        ------
+        Tuple[list]: 
+            train_y_preds: The model's train predictions
+            train_loss: The loss evaluation metric
         """
 
         X_train = torch.tensor(X_train_df.values, requires_grad=True, dtype=torch.float32)
@@ -94,26 +95,26 @@ class Model(ABC, nn.Module):
     def interpolate_predictions(self, X_test_df: pd.DataFrame, y_test_df: pd.DataFrame, config: list):
         """Perform interpolation to predict values within the existing range of data points (so test data), thus predict in-sample values.
 
-            Parameters
-            ----------
-            X_train_df: `pd.DataFrame` 
-                Input data tensor
+        Parameters
+        ----------
+        X_train_df: `pd.DataFrame` 
+            Input data tensor
 
-            y_train_df: `pd.DataFrame`
-                Target data tensor
+        y_train_df: `pd.DataFrame`
+            Target data tensor
 
-            config: `py list`
-                criterion: `torch.nn.Module`
-                    Loss criterion
+        config: `py list`
+            criterion: `torch.nn.Module`
+                Loss criterion
 
-                optimize: `torch.optim.Optimizer`
-                    Optimization algorithm
-            
-            Return
-            ------
-            Tuple[list]: 
-                test_y_preds: The model's test predictions
-                test_loss: The loss evaluation metric
+            optimize: `torch.optim.Optimizer`
+                Optimization algorithm
+        
+        Return
+        ------
+        Tuple[list]: 
+            test_y_preds: The model's test predictions
+            test_loss: The loss evaluation metric
         """
 
         X_test = torch.tensor(X_test_df.values, dtype=torch.float32)
@@ -139,14 +140,14 @@ class Model(ABC, nn.Module):
     def extrapolate_forecasts(self, X_test_df: pd.DataFrame):
         """Perform extrapolation to predict values beyond the existing range of data points (so no test data), thus forecast out-sample values.
 
-            Parameters
-            ----------
-            X_train_df: `pd.DataFrame` 
-                Input data tensor
-            
-            Return
-            ------ 
-                test_y_preds: `list`
+        Parameters
+        ----------
+        X_train_df: `pd.DataFrame` 
+            Input data tensor
+        
+        Returns
+        -------
+            test_y_preds: `list`
                     The model's forecasts
         """
 
@@ -265,5 +266,47 @@ class ModelFactory:
         if unexpected_keys:
             print(f"Unexpected keys when loading the model: {unexpected_keys}")
         return model
+    
+    @staticmethod
+    def compare_models(models, input_data_df):
+        """Compare predictions of multiple models that are the same (as in save model, load model, compare predictions of these models to ensure same) on the given input data.
+        
+        Parameters
+        ----------
+        models: `list` 
+            List of models to compare.
+            
+        input_data_df: `pd.DataFrame` 
+            The input data for making predictions. Usually it'll be the test_data
+        
+        Returns
+        -------
+        are_equal: `bool`
+            True if all models produce the same predictions, False otherwise.
+        """
+        if len(models) < 2:
+            raise ValueError("At least two models are required for comparison.")
+        
+        input_data = torch.tensor(input_data_df.values, requires_grad=False, dtype=torch.float32)
+
+
+        # Append all predictions to the same list (without reseting list)
+        predictions = []
+        for model in models:
+            model.eval()
+            with torch.inference_mode():
+                predictions.append(model.forward_pass(input_data))
+        
+        are_equal = torch.equal(predictions[0], predictions[1]) # Compare element-wise of only first two model
+        # If are_equal returns True, then compare the remaining predictions to the first model
+        # Already compared the first two models (0 and 1, so start at 2)
+        for i in range(2, len(predictions)):
+            are_equal &= torch.equal(predictions[i], predictions[0]) # Auto break if are_equal returns False
+        
+        if are_equal:
+            print(f"All models ({models}) produce the same predictions.")
+        else:
+            print(f"Models ({models}) produce different predictions.")
+        
 
         
