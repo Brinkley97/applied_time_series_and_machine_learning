@@ -274,7 +274,8 @@ class ModelFactory:
             model_save_path = model_path + model_name
             print("model save path: ", model_save_path)
             updated_model_save_path = create_file_version(model_save_path)
-            torch.save(model.state_dict(), updated_model_save_path)
+            print("updated_model_save_path: ", updated_model_save_path)
+            torch.save(obj=model.state_dict(), f=updated_model_save_path)
             print(f"Model saved successfully at: {updated_model_save_path}")
         else:
             print(f"Cannot save model: the extension '{ext}' is incorrect. Should be '.pt' or '.pth'.")
