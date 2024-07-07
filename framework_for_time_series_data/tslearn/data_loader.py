@@ -182,7 +182,7 @@ def create_file_version(filename_with_path: str) -> str:
     # print("Check file version --- ", filename_with_path)
     while os.path.exists(filename_with_path):
         # print(True)
-        filename_with_path = filename + "-v" + str(counter) + "" + extension
+        filename_with_path = f"{filename}-v{counter}{extension}"
         counter += 1
 
-        return filename_with_path
+    return filename_with_path
