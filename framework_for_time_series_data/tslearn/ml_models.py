@@ -281,17 +281,18 @@ class ModelFactory:
                 updated_model_save_path = create_file_version(model_save_path)
                 # print("updated_model_save_path: ", updated_model_save_path)
                 torch.save(obj=model.state_dict(), f=updated_model_save_path)
-                print(f"Model saved successfully at: {updated_model_save_path}")
+                # print(f"Model saved successfully at: {updated_model_save_path}")
 
                 # Visualize and save the model graph
                 with torch.inference_mode():
                     output = model.forward_pass(example_input)
                 dot = make_dot(output, params=dict(model.named_parameters()))
-                image_path = os.path.join(save_directory, "model_graph")
+                updated_model_name, _ = os.path.splitext(model_name)
+                image_path = os.path.join(save_directory, updated_model_name) + '_image'
                 updated_image_path = create_file_version(image_path)
                 dot.format = 'png'
                 dot.render(updated_image_path)
-                print(f"Model graph image saved to {updated_image_path}.png")
+                # print(f"Model graph image saved to {updated_image_path}.png")
                 
                 # Show the saved graph image
                 display(Image(filename=f'{updated_image_path}.png'))
@@ -356,10 +357,4 @@ class ModelFactory:
             print(f"All models ({models}) produce the same predictions.")
         else:
             print(f"Models ({models}) produce different predictions.")
-
-def example_usage(select_model: str, model_params: dict, model_name: str, example_input: torch.Tensor):
-    factory = ModelFactory()
-
-    model = factory.create_model(select_model, **model_params)
-    factory.save_model_and_graph(model, model_name, example_input)
 
