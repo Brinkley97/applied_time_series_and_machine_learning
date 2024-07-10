@@ -15,7 +15,9 @@ import matplotlib.pyplot as plt
 
 from abc import ABC
 from typing import List
+from torchviz import make_dot
 from abc import abstractmethod
+from IPython.display import Image
 
 from tkinter.filedialog import askopenfilenames, askdirectory
 
@@ -39,7 +41,7 @@ class Model(ABC, nn.Module):
         super().__init__()
 
     @abstractmethod # Method is required in sub classes as it'll differ per sub class
-    def forward_pass():
+    def forward_pass(self, x):
         pass
     
     # Method is NOT required in sub classes as it's the same for all sub classes
@@ -249,8 +251,8 @@ class ModelFactory:
             raise ValueError(f"Unknown model type: {select_model}. Pass in one of the following model types: {list(self.model_mapping.keys())}")
     
     @staticmethod # This will allow us to save model (by directly creating an instance of the model) without requiring create_model().
-    def save_model(model: nn.Module, model_name: str):
-        """Save a PyTorch model
+    def save_model_and_graph(model: nn.Module, model_name: str, example_input:torch.Tensor):
+        """Save a PyTorch model and the graph of the model
         
         Parameters
         ----------
@@ -270,13 +272,32 @@ class ModelFactory:
         _, ext = os.path.splitext(model_name)
         if ext in [".pt", ".pth"]:
             print("Where to save model? Select the folder.")
-            model_path = askdirectory() + "/"
-            model_save_path = model_path + model_name
-            print("model save path: ", model_save_path)
-            updated_model_save_path = create_file_version(model_save_path)
-            print("updated_model_save_path: ", updated_model_save_path)
-            torch.save(obj=model.state_dict(), f=updated_model_save_path)
-            print(f"Model saved successfully at: {updated_model_save_path}")
+            save_directory = askdirectory(title="Select Directory to Save Model and Image") + "/"
+
+            if save_directory:
+                # Save the model
+                model_save_path = save_directory + model_name
+                # print("model save path: ", model_save_path)
+                updated_model_save_path = create_file_version(model_save_path)
+                # print("updated_model_save_path: ", updated_model_save_path)
+                torch.save(obj=model.state_dict(), f=updated_model_save_path)
+                print(f"Model saved successfully at: {updated_model_save_path}")
+
+                # Visualize and save the model graph
+                with torch.inference_mode():
+                    output = model.forward_pass(example_input)
+                dot = make_dot(output, params=dict(model.named_parameters()))
+                image_path = os.path.join(save_directory, "model_graph")
+                updated_image_path = create_file_version(image_path)
+                dot.format = 'png'
+                dot.render(updated_image_path)
+                print(f"Model graph image saved to {updated_image_path}.png")
+                
+                # Show the saved graph image
+                display(Image(filename=f'{updated_image_path}.png'))
+            else:
+                print("Save directory not selected. Model and image not saved.")
+
         else:
             print(f"Cannot save model: the extension '{ext}' is incorrect. Should be '.pt' or '.pth'.")
 
@@ -335,6 +356,10 @@ class ModelFactory:
             print(f"All models ({models}) produce the same predictions.")
         else:
             print(f"Models ({models}) produce different predictions.")
-        
 
-        
+def example_usage(select_model: str, model_params: dict, model_name: str, example_input: torch.Tensor):
+    factory = ModelFactory()
+
+    model = factory.create_model(select_model, **model_params)
+    factory.save_model_and_graph(model, model_name, example_input)
+
