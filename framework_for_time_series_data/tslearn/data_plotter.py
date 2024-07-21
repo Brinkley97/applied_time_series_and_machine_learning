@@ -215,7 +215,7 @@ class InterpolatePlotter(Plotter):
         """
         plt.figure(figsize=(7, 7))
         plt.scatter(train_data_df.values, train_labels_df.values, c="b", s=4, label="Training data")
-        plt.scatter(test_data_df.values, test_labels_df.values, c="g", s=4, label="Testing data")
+        plt.scatter(test_data_df.values, test_labels_df.values, c="g", s=10, label="Testing data")
 
         if predictions is not None:
             plt.scatter(test_data_df.values, predictions, c="r", s=4, label="Predictions")

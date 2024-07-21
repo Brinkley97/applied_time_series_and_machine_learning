@@ -4,28 +4,21 @@ Detravious Jamari Brinkley (aka FitToCode)
 Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/example#lang-features
 """
 
-import matplotx
-import torch
-
 import numpy as np
 import pandas as pd
 
-import torch.nn as nn
 import matplotlib.pyplot as plt
 
 from abc import ABC
 from math import sqrt
-from typing import List
-from abc import abstractmethod
 from dataclasses import dataclass
 
 from statsmodels.tsa.ar_model import AutoReg
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-
-from constants import Number, TimeSeriesData
-from time_series import UnivariateTimeSeries
+# from constants import Number, TimeSeriesData
+# from time_series import UnivariateTimeSeries
 
 from sklearn.metrics import mean_squared_error, max_error, mean_absolute_error, mean_absolute_percentage_error
 
@@ -58,8 +51,8 @@ class RandomWalk(Model):
 
         With this, we don't difference nor do we get the returns.
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         train_raw_x: `pd.DataFrame`
             The raw train data
          test_raw_y: `pd.DataFrame`
@@ -122,27 +115,25 @@ class AR(Model):
     def __name__(self):
         return "AR"
 
-    def train_ar_model(self, train_data_df: pd.DataFrame, threshold_lags: list):
+    def train_ar_model(self, train_data_df: pd.DataFrame, lag: int):
         """Initial and train an autoregressive model.
 
-        Verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
-
-        Parameters
-        ----------
+        Parameters:
+        -----------
         train_data_df: `pd.DataFrame`
             Data to train our autoregressive model on
 
         threshold_lags: `list`
             A list of lag values that are over a threshold to pass to autoregressive model
 
-        Returns
-        -------
+        Returns:
+        --------
         trained_ar_model: `statsmodel AutoReg model`
             A single trained autoregressive models with each differing by lag value
 
         """
 
-        ar_model = AutoReg(train_data_df, lags=threshold_lags)
+        ar_model = AutoReg(train_data_df, lags=lag)
         trained_ar_model = ar_model.fit()
 
         return trained_ar_model
@@ -150,8 +141,8 @@ class AR(Model):
     def predict(self, trained_ar_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
         """Make predictions with trained autoregressive moving average model.
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         trained_arma_model: AR models
             Trained autoregressive models
 
@@ -165,8 +156,8 @@ class AR(Model):
             False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
             True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
 
-        Returns
-        -------
+        Returns:
+        --------
         model_predictions: `np.array`
             A list of predictions
 
@@ -182,8 +173,8 @@ class AR(Model):
             end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
 
             # verify y_true_dates
-            all_dates = historical_dates + y_true_dates # 1 - 30
-            prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
+            # all_dates = historical_dates + y_true_dates # 1 - 30
+            # prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
             # print(f"Predictions for dates {prediction_dates}")
 
             model_predictions = trained_ar_model.predict(start=start, end=end, dynamic=False)
@@ -205,11 +196,10 @@ class AR(Model):
                 yhat = coef[0]
                 for d in range(lag_to_test):
                     yhat += coef[d+1] * lag[lag_to_test-d-1]
-                    obs = test[t]
+                obs = test[t]
                 predictions.append(yhat)
                 history.append(obs)
                 # print('predicted=%f, expected=%f' % (yhat, obs))
-
             return predictions
         else:
             print(f"{retrain} is NOT a valid name for retrian")
@@ -219,40 +209,40 @@ class MA(Model):
     def __name__(self):
         return "MA"
 
-    def train_predict_ma_model(self, ts_df: pd.DataFrame, training_data_len: int, testing_data_len: int, window_len: int, test_error_term: int) -> list:
-        """Initial, train, and predict using the moving average model per https://github.com/marcopeix/TimeSeriesForecastingInPython/blob/master/CH04/CH04.ipynb
+    # def train_predict_ma_model(self, ts_df: pd.DataFrame, training_data_len: int, testing_data_len: int, window_len: int, test_error_term: int) -> list:
+    #     """Initial, train, and predict using the moving average model per https://github.com/marcopeix/TimeSeriesForecastingInPython/blob/master/CH04/CH04.ipynb
 
-        Parameters
-        ----------
-        ts_df: `pd.DataFrame`
-            Data to train our moving average model
-        training_data_len: `pd.DataFrame`
-            Length of training data
-        testing_data_len: `pd.DataFrame`
-            Length of testing data
-        window_len: `int`
-            Length of sliding window for our moving average model
-        test_error_terms: `int`
-            A single error term to pass to our moving average model. Formally known as q for MA(q)
+    #     Parameters:
+    #     -----------
+    #     ts_df: `pd.DataFrame`
+    #         Data to train our moving average model
+    #     training_data_len: `pd.DataFrame`
+    #         Length of training data
+    #     testing_data_len: `pd.DataFrame`
+    #         Length of testing data
+    #     window_len: `int`
+    #         Length of sliding window for our moving average model
+    #     test_error_terms: `int`
+    #         A single error term to pass to our moving average model. Formally known as q for MA(q)
 
-        Returns
-        ------
-        predicted_forecasts: `list`
-            A list of predicted forecasts
+    #     Returns:
+    #     --------
+    #     predicted_forecasts: `list`
+    #         A list of predicted forecasts
 
-        """
-        predicted_forecasts = []
-        total_len = training_data_len + testing_data_len
+    #     """
+    #     predicted_forecasts = []
+    #     total_len = training_data_len + testing_data_len
 
-        for i in range(training_data_len, total_len, window_len):
+    #     for i in range(training_data_len, total_len, window_len):
 
-            ma_model = SARIMAX(ts_df[:i], order=(0, 0, test_error_term))
-            trained_ma_model = ma_model.fit(disp=False)
-            predictions = trained_ma_model.get_prediction(0, i + window_len - 1)
-            oos_pred = predictions.predicted_mean.iloc[-window_len:]
-            predicted_forecasts.extend(oos_pred)
+    #         ma_model = SARIMAX(ts_df[:i], order=(0, 0, test_error_term))
+    #         trained_ma_model = ma_model.fit(disp=False)
+    #         predictions = trained_ma_model.get_prediction(0, i + window_len - 1)
+    #         oos_pred = predictions.predicted_mean.iloc[-window_len:]
+    #         predicted_forecasts.extend(oos_pred)
 
-        return predicted_forecasts
+    #     return predicted_forecasts
 
 class ARMA(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive moving average model.
@@ -266,8 +256,8 @@ class ARMA(Model):
     def train_arma_model(self, train_data_df: pd.DataFrame, lag_p: int, error_q: int):
         """Initial and train an autoregressive moving average model.
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         train_data_df: `pd.DataFrame`
             Data to train our autoregressive model on
 
@@ -277,8 +267,8 @@ class ARMA(Model):
         error_q: `int`
             Error value from Autocorrelation plot
 
-        Returns
-        ------
+        Returns:
+        --------
         trained_arma_model: `statsmodel ARIMA model`
             A single trained autoregressive moving average model
 
@@ -292,8 +282,8 @@ class ARMA(Model):
     def predict(self, trained_arma_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
         """Make predictions with trained autoregressive moving average model.
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         trained_arma_model: AR models
             Trained autoregressive moving average model
 
@@ -307,8 +297,8 @@ class ARMA(Model):
             False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
             True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
 
-        Returns
-        -------
+        Returns:
+        --------
         model_predictions: `np.array`
             A list of predictions
 
@@ -363,8 +353,8 @@ class ARIMA_model_old(Model):
     def train_arima_model(self, train_data: np.array, test_lag_term: int, integrated: int, test_error_term: int) -> list:
         """Initial and train an autoregressive integrated moving average model.
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         train_data: `np.array`
             Data to train our autoregressive model on
         test_lags: `list`
@@ -374,8 +364,8 @@ class ARIMA_model_old(Model):
         integrated: `int`
             An integer value to difference the TS
 
-        Returns
-        ------
+        Returns:
+        --------
         trained_arima_models: `list`
             A list of trained autoregressive integrated moving average models
 
@@ -392,8 +382,8 @@ class ARIMA_model_old(Model):
     def predict(self, trained_arima_models, go: int, stop: int) -> np.array:
         """Make predictions with trained autoregressive integrated moving average models on the .
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         trained_arma_models: `ARMA models`
             Trained autoregressive moving average models
         len_historical_data: `np.array`
@@ -403,8 +393,8 @@ class ARIMA_model_old(Model):
         test: `np.array`
             The testing data
 
-        Returns
-        ------
+        Returns:
+        --------
         predictions: `list`
             A list of predictions for each autoregressive integrated moving average model
 
@@ -432,8 +422,8 @@ class ARIMA_model(Model):
     def train_arima_model(self, train_data_df: pd.DataFrame, lag_p: int, integrated_d : int, error_q: int):
         """Initial and train an autoregressive integrated moving average model.
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         train_data_df: `pd.DataFrame`
             Data to train our autoregressive moving average model
 
@@ -446,8 +436,8 @@ class ARIMA_model(Model):
         error_q: `int`
             Error value from Autocorrelation plot
 
-        Returns
-        ------
+        Returns:
+        --------
         trained_arma_model: `statsmodel ARIMA model`
             A single trained autoregressive integrated moving average model
 
@@ -461,8 +451,8 @@ class ARIMA_model(Model):
     def predict(self, trained_arima_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
         """Make predictions with trained autoregressive integrated moving average model.
 
-        Parameters
-        ----------
+        Parameters:
+        -----------
         trained_arima_model: ARIMA models
             Trained autoregressive integrated moving average model
 
@@ -476,8 +466,8 @@ class ARIMA_model(Model):
             False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
             True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
 
-        Returns
-        -------
+        Returns:
+        --------
         model_predictions: `np.array`
             A list of predictions
 
@@ -604,5 +594,3 @@ class EvaluationMetric:
         else:
             mape = mean_absolute_percentage_error(true_predictions, model_predictions)
             print('Test MAPE: %.3f' % mape)
-
-    
