@@ -353,7 +353,7 @@ class ARMA(Model):
 
         self.model = ARIMA(train_data_df, order=(self.lag_p, 0, self.error_q), trend="n").fit()
 
-    def makde_predict(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool) -> np.array:
+    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool) -> np.array:
         """Make predictions with trained autoregressive moving average model.
 
         Parameters:
