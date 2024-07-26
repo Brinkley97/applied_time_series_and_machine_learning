@@ -184,30 +184,36 @@ class Plotter(ABC):
         pass
 
 class InterpolatePlotter(Plotter):
-    def __init__(self, true_predictions_df: pd.DataFrame = None, model_predictions: np.array = None):
+    def __init__(self, true_predictions_df: pd.DataFrame = None, predictions_dict: dict = None):
         self.true_predictions_df = true_predictions_df
-        self.model_predictions = model_predictions
+        self.predictions_dict = predictions_dict
 
-    def plot_in_sample_predictions(self):
+    def plot_in_sample_predictions(self, scatter_type: bool):
         """
         Plots the in-sample predictions.
 
         Need to verify with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
         """
-        if self.true_predictions_df is not None and self.model_predictions is not None:
+        if self.true_predictions_df is not None and self.predictions_dict:
             true_predictions = self.true_predictions_df.values
 
-            plt.figure(figsize=(7, 7))
+            plt.figure(figsize=(14, 8))
             plt.xlabel("Observations")
             plt.ylabel("Values")
 
-            plt.scatter(range(len(true_predictions)), true_predictions, color='blue', label='True Values', s=10)
-            plt.scatter(range(len(self.model_predictions)), self.model_predictions, color='red', label='Predicted Values', s=10)
+            if scatter_type:
+                plt.scatter(range(len(true_predictions)), true_predictions, color='blue', label='True Values', s=10)
+
+                for label, predictions in self.predictions_dict.items():
+                    plt.scatter(range(len(predictions)), predictions, label=label, s=10)
+            else:
+                plt.plot(true_predictions, color='blue', label='True Values', linewidth=3)
+
+                for label, predictions in self.predictions_dict.items():
+                    plt.plot(predictions, label=label, linewidth=2)
 
             plt.legend()
             plt.show()
-        else:
-            print("In-sample predictions or true predictions are not available.")
 
     def plot_training_and_testing_data(self, train_data_df: pd.DataFrame, train_labels_df: pd.DataFrame, test_data_df: pd.DataFrame, test_labels_df: pd.DataFrame, predictions=None):
         """
