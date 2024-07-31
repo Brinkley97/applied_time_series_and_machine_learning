@@ -30,33 +30,133 @@ class Model(ABC):
     Methods decorated with @abstractmethod must be implemented; if not, the interpreter will throw an error. Methods not decorated will be shared by all other classes that inherit from Model.
     """
 
-    def __name__(self):
-        pass
-
-    def __init__(self, no_retrain_name, retrain_name, lag_p: int = None, error_q: int = None):
-        self.no_retrain_name = self.__name__() + no_retrain_name
-        self.retrain_name = self.__name__() + retrain_name
-        self.lag_p = lag_p
-        self.error_q = error_q
-
-    def model_predictions_to_df(self, y_true_predictions_df, model_predictions_no_retrain, model_predictions_retrain):
-        
-        y_true_predictions_df[self.no_retrain_name] = model_predictions_no_retrain
-        y_true_predictions_df[self.retrain_name] = model_predictions_retrain
-        
-        return y_true_predictions_df
-    
-    def augment_retrain_predictions(self, model_predictions_retrain):
-        concatenated_output = np.concatenate(model_predictions_retrain)
-        # Format the output
-        formatted_output = np.array(concatenated_output)
-        return formatted_output
-        
-    def forward(self):
+    def train(self):
         pass
 
     def predict(self):
         pass
+
+    def summary(self):
+        pass
+
+    def __name__(self):
+        raise NotImplementedError
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def get_prediction_indices(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame):
+        """Get start and end indices for predictions based on historical and true prediction data.
+
+        Parameters:
+        -----------
+        historical_data_df: `pd.DataFrame`
+            The historical data used to train our model(s)
+
+        y_true_predictions_df: `pd.DataFrame`
+            The actual forecasts
+
+        Returns:
+        --------
+        start: `int`
+            The start index for predictions
+
+        end: `int`
+            The end index for predictions
+
+        y_true_dates: `list`
+            The dates for the true predictions
+        """
+        historical_dates = list(historical_data_df.index)
+        y_true_dates = list(y_true_predictions_df.index)
+        start = len(historical_dates)
+        end = start + len(y_true_dates) - 1
+        return start, end, y_true_dates
+
+    def ensure_datetime_index(self, data_df: pd.DataFrame) -> pd.DataFrame:
+        """Ensure the DataFrame has a datetime index with a frequency."""
+        if not isinstance(data_df.index, pd.DatetimeIndex) or data_df.index.freq is None:
+            data_df.index = pd.date_range(start=data_df.index[0], periods=len(data_df), freq='D')
+        return data_df
+
+    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool) -> np.array:
+        """Make predictions with trained model.
+
+        Parameters:
+        -----------
+        historical_data_df: `pd.DataFrame`
+            Data used to train the model.
+        y_true_predictions_df: `pd.DataFrame`
+            Data for which predictions are made.
+        retrain: `bool`
+            If False, uses the existing model for predictions.
+            If True, retrains the model on the historical data and then makes predictions.
+
+        Returns:
+        --------
+        model_predictions: `np.array`
+            Array of predictions.
+        """
+        historical_data_df = self.ensure_datetime_index(historical_data_df)
+        y_true_predictions_df = self.ensure_datetime_index(y_true_predictions_df)
+
+        if not retrain:
+            # Use existing model for predictions
+            historical_dates = list(historical_data_df.index)
+            y_true_dates = list(y_true_predictions_df.index)
+            start = len(historical_dates)
+            end = start + len(y_true_dates) - 1
+            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
+            return model_predictions
+
+        else:
+            # Retrain the model using the historical data
+            start_retrain_idx = len(historical_data_df) - self.error_q
+            
+            # Prepare the historical data for retraining
+            history = historical_data_df[start_retrain_idx:].values.tolist()
+            history_array = []
+            for data_point in history:
+                history_array.append(np.array(data_point))
+            
+            # Prepare the true values for predictions
+            test_values = y_true_predictions_df.values
+            
+            predictions = []
+            
+            # Iterate over each test value to make predictions
+            for test_index in range(len(test_values)):
+                history_length = len(history_array)
+                
+                # Extract the lagged values for the prediction
+                lags = []
+                for i in range(history_length - self.error_q, history_length):
+                    lags.append(history_array[i])
+                
+                # Retrieve model coefficients
+                coefficients = self.model.params
+                
+                # Calculate the predicted value
+                predicted_value = coefficients[0]
+                for error_term_index in range(self.error_q):
+                    # Retrieve the coefficient for the current lagged value
+                    coefficient = coefficients[error_term_index + 1]
+                    
+                    # Compute the index to access the correct lagged value
+                    lag_index = -(error_term_index + 1)
+                    
+                    # Retrieve the lagged value from the history
+                    lagged_value = lags[lag_index]
+                    
+                    # Update the predicted value by adding the contribution of the current lagged value
+                    predicted_value += coefficient * lagged_value
+                                
+                # Append the actual value to the history and store the prediction
+                actual_value = test_values[test_index]
+                predictions.append(predicted_value)
+                history_array.append(actual_value)
+            
+        return predictions
 
 class RandomWalk(Model):
     def __name__(self):
@@ -132,9 +232,13 @@ class AR_Model(Model):
 
     """
     def __name__(self):
-        return "AR Model"
+        return "AR_Model"
+    
+    def __init__(self, lag_p: int):
+        super().__init__()
+        self.lag_p = lag_p
 
-    def train(self, train_data_df: pd.DataFrame, lag: int):
+    def train(self, train_data_df: pd.DataFrame):
         """Initial and train an autoregressive model.
 
         Parameters:
@@ -146,14 +250,13 @@ class AR_Model(Model):
             A list of lag values that are over a threshold to pass to autoregressive model
 
         """
-        self.model = AutoReg(train_data_df, lags=lag).fit()
+        self.model = AutoReg(train_data_df, lags=self.lag_p).fit()
 
     def summary(self):
         """Return the summary of the autoregressive model."""
         return self.model.summary()
 
-
-    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lags: int) -> np.array:
+    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool) -> np.array:
         """Make predictions with trained autoregressive moving average model.
 
         Parameters:
@@ -174,94 +277,18 @@ class AR_Model(Model):
             A list of predictions
 
         """
-
-        if retrain == False:
-            # Example: Days 1 - 30 with forecast of 7 days
-            historical_dates = list(historical_data_df.index) # 1 - 23
-            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-            # print(f"Predictions for dates {y_true_dates}")
-
-            start = len(historical_dates) # 23
-            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
-
-            # verify y_true_dates
-            # all_dates = historical_dates + y_true_dates # 1 - 30
-            # prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
-            # print(f"Predictions for dates {prediction_dates}")
-
-            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
-            return model_predictions
-
-        elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - lags
-            history = historical_data_df[start_retrain_idx:].values.tolist()
-            for i in range(len(history)):
-                history[i] = np.array(history[i])
-            test = y_true_predictions_df.values
-
-            predictions = list()
-            for t in range(len(test)):
-                length = len(history)
-                lag = [history[i] for i in range(length - lags, length)]
-                coef = self.model.params
-
-                yhat = coef[0]
-                for d in range(lags):
-                    yhat += coef[d+1] * lag[lags-d-1]
-                obs = test[t]
-                predictions.append(yhat)
-                history.append(obs)
-
-                augmented_predictions = self.augment_retrain_predictions(predictions)
-
-            return augmented_predictions
-            
-        
-# Need to rebuild and verify
-class MA(Model):
-    def __name__(self):
-        return "MA"
-
-    # def train_predict_ma_model(self, ts_df: pd.DataFrame, training_data_len: int, testing_data_len: int, window_len: int, test_error_term: int) -> list:
-    #     """Initial, train, and predict using the moving average model per https://github.com/marcopeix/TimeSeriesForecastingInPython/blob/master/CH04/CH04.ipynb
-
-    #     Parameters:
-    #     -----------
-    #     ts_df: `pd.DataFrame`
-    #         Data to train our moving average model
-    #     training_data_len: `pd.DataFrame`
-    #         Length of training data
-    #     testing_data_len: `pd.DataFrame`
-    #         Length of testing data
-    #     window_len: `int`
-    #         Length of sliding window for our moving average model
-    #     test_error_terms: `int`
-    #         A single error term to pass to our moving average model. Formally known as q for MA(q)
-
-    #     Returns:
-    #     --------
-    #     predicted_forecasts: `list`
-    #         A list of predicted forecasts
-
-    #     """
-    #     predicted_forecasts = []
-    #     total_len = training_data_len + testing_data_len
-
-    #     for i in range(training_data_len, total_len, window_len):
-
-    #         ma_model = SARIMAX(ts_df[:i], order=(0, 0, test_error_term))
-    #         trained_ma_model = ma_model.fit(disp=False)
-    #         predictions = trained_ma_model.get_prediction(0, i + window_len - 1)
-    #         oos_pred = predictions.predicted_mean.iloc[-window_len:]
-    #         predicted_forecasts.extend(oos_pred)
-
-    #     return predicted_forecasts
+        # Call the parent class's make_predictions method
+        return super().make_predictions(historical_data_df, y_true_predictions_df, retrain)
 
 class MA_Model(Model):
     """A class used to initialize, train, and forecast predictions with our moving average model."""
 
     def __name__(self):
-        return "MA Model"
+        return "MA_Model"
+    
+    def __init__(self, error_q):
+        super().__init__()
+        self.error_q = error_q
 
     def summary(self):
         """Return the summary of the autoregressive model."""
@@ -302,34 +329,8 @@ class MA_Model(Model):
         model_predictions: `np.array`
             A list of predictions
         """
-        if retrain == False:
-            historical_dates = list(historical_data_df.index)
-            y_true_dates = list(y_true_predictions_df.index)
-            start = len(historical_dates)
-            end = start + len(y_true_dates) - 1
-            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
-            return model_predictions
-        elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - self.error_q
-            history = historical_data_df[start_retrain_idx:].values.tolist()
-            for i in range(len(history)):
-                history[i] = np.array(history[i])
-            test = y_true_predictions_df.values
-            predictions = list()
-            for t in range(len(test)):
-                length = len(history)
-                lag = [history[i] for i in range(length - self.error_q, length)]
-                coef = self.model.params
-                yhat = coef[0]
-                for d in range(self.error_q):
-                    yhat += coef[d+1] * lag[self.error_q-d-1]
-                obs = test[t]
-                predictions.append(yhat)
-                history.append(obs)
-                augmented_predictions = self.augment_retrain_predictions(predictions)
-
-            return augmented_predictions
-            
+        # Call the parent class's make_predictions method
+        return super().make_predictions(historical_data_df, y_true_predictions_df, retrain)
 
 class ARMA(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive moving average model.
@@ -339,6 +340,10 @@ class ARMA(Model):
     """
     def __name__(self):
         return "ARMA"
+    
+    def __init__(self, lag_p, error_q):
+        self.lag_p = lag_p
+        self.error_q = error_q
 
     def summary(self):
         """Return the summary of the autoregressive model."""
@@ -391,111 +396,8 @@ class ARMA(Model):
             A list of predictions
 
         """
-
-        if retrain == False:
-            # Example: Days 1 - 30 with forecast of 7 days
-            historical_dates = list(historical_data_df.index) # 1 - 23
-            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-            # print(f"Predictions for dates {y_true_dates}")
-
-            start = len(historical_dates) # 23
-            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
-
-            # verify y_true_dates
-            # all_dates = historical_dates + y_true_dates # 1 - 30
-            # prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
-            # print(f"Predictions for dates {prediction_dates}")
-
-            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
-            return model_predictions
-        
-        elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - self.lag_p
-            history = historical_data_df[start_retrain_idx:].values.tolist()
-            for i in range(len(history)):
-                history[i] = np.array(history[i])
-            test = y_true_predictions_df.values
-
-            predictions = list()
-            for t in range(len(test)):
-                length = len(history)
-                lag = [history[i] for i in range(length - self.lag_p, length)]
-                coef = self.model.params
-
-                yhat = coef[0]
-                for d in range(self.lag_p):
-                    yhat += coef[d+1] * lag[self.lag_p-d-1]
-                    obs = test[t]
-                predictions.append(yhat)
-                history.append(obs)
-                augmented_predictions = self.augment_retrain_predictions(predictions)
-
-            return augmented_predictions
-            
-
-class ARIMA_model_old(Model):
-    def __name__(self):
-        return "ARIMA"
-
-    def train_arima_model(self, train_data: np.array, test_lag_term: int, integrated: int, test_error_term: int) -> list:
-        """Initial and train an autoregressive integrated moving average model.
-
-        Parameters:
-        -----------
-        train_data: `np.array`
-            Data to train our autoregressive model on
-        test_lags: `list`
-            A list of lag values to pass to autoregressive model
-        test_error_terms: `list`
-            A list of error terms to pass to moving average model
-        integrated: `int`
-            An integer value to difference the TS
-
-        Returns:
-        --------
-        trained_arima_models: `list`
-            A list of trained autoregressive integrated moving average models
-
-        """
-        trained_arima_models = []
-
-        arima_model = ARIMA(train_data, order=(test_lag_term, integrated, test_error_term))
-        trained_arima_model = arima_model.fit()
-        print(trained_arima_model.summary())
-        trained_arima_models.append(trained_arima_model)
-
-        return trained_arima_models
-
-    def predict(self, trained_arima_models, go: int, stop: int) -> np.array:
-        """Make predictions with trained autoregressive integrated moving average models on the .
-
-        Parameters:
-        -----------
-        trained_arma_models: `ARMA models`
-            Trained autoregressive moving average models
-        len_historical_data: `np.array`
-            The length of our historical data
-        train: `np.array`
-            The training data
-        test: `np.array`
-            The testing data
-
-        Returns:
-        --------
-        predictions: `list`
-            A list of predictions for each autoregressive integrated moving average model
-
-        """
-
-        predictions = []
-
-        for trained_arima_models_idx in range(len(trained_arima_models)):
-            trained_arima_model = trained_arima_models[trained_arima_models_idx]
-            print("ARIMA(", trained_arima_model, ")")
-            model_prediction = trained_arima_model.predict(start=go, end=stop, dynamic=False)
-            predictions.append(model_prediction)
-
-        return predictions
+        # Call the parent class's make_predictions method
+        return super().make_predictions(historical_data_df, y_true_predictions_df, retrain)
 
 class ARIMA_model(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive integrated moving average model.
@@ -504,7 +406,7 @@ class ARIMA_model(Model):
 
     """
     def __name__(self):
-        return "ARIMA"
+        return "ARMA"
 
     def train_arima_model(self, train_data_df: pd.DataFrame, lag_p: int, integrated_d : int, error_q: int):
         """Initial and train an autoregressive integrated moving average model.
@@ -530,9 +432,12 @@ class ARIMA_model(Model):
 
         """
 
-        self.model = ARIMA(train_data_df, order=(lag_p, integrated_d, error_q), trend="n").fit()
+        arima_model = ARIMA(train_data_df, order=(lag_p, integrated_d, error_q), trend="n")
+        trained_arima_model = arima_model.fit()
 
-    def predict(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
+        return trained_arima_model
+
+    def make_predictions(self, trained_arima_model, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
         """Make predictions with trained autoregressive integrated moving average model.
 
         Parameters:
@@ -556,48 +461,8 @@ class ARIMA_model(Model):
             A list of predictions
 
         """
-
-        if retrain == False:
-            # Example: Days 1 - 30 with forecast of 7 days
-            historical_dates = list(historical_data_df.index) # 1 - 23
-            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-            # print(f"Predictions for dates {y_true_dates}")
-
-            start = len(historical_dates) # 23
-            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
-
-            # verify y_true_dates
-            # all_dates = historical_dates + y_true_dates # 1 - 30
-            # prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
-            # print(f"Predictions for dates {prediction_dates}")
-
-            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
-            return model_predictions
-
-        elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - lag_to_test
-            history = historical_data_df[start_retrain_idx:].values.tolist()
-            for i in range(len(history)):
-                history[i] = np.array(history[i])
-            test = y_true_predictions_df.values
-
-            predictions = list()
-            for t in range(len(test)):
-                length = len(history)
-                lag = [history[i] for i in range(length - lag_to_test, length)]
-                coef = self.model.params
-
-                yhat = coef[0]
-                for d in range(lag_to_test):
-                    yhat += coef[d+1] * lag[lag_to_test-d-1]
-                    obs = test[t]
-                predictions.append(yhat)
-                history.append(obs)
-                # print('predicted=%f, expected=%f' % (yhat, obs))
-
-            return predictions
-        else:
-            print(f"{retrain} is NOT a valid name for retrain")
+        # Call the parent class's make_predictions method
+        return super().make_predictions(historical_data_df, y_true_predictions_df, retrain)
 
 @dataclass
 class EvaluationMetric:
