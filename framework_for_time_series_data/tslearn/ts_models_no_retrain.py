@@ -38,6 +38,35 @@ class Model(ABC):
         self.lag_p = lag_p
         self.error_q = error_q
 
+    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame) -> np.array:
+        """Make predictions with trained autoregressive moving average model.
+
+        Parameters:
+        -----------
+        historical_data_df: `pd.DataFrame`
+            The data we used to train our model(s)
+
+        y_true_predictions_df: `pd.DataFrame`
+            The actual forecasts
+
+        retrain: `bool`
+            False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
+            True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
+
+        Returns:
+        --------
+        model_predictions: `np.array`
+            A list of predictions
+
+        """
+
+        start_forecasting = len(historical_data_df)  # 24
+        end_forecasting = start_forecasting + len(y_true_predictions_df) - 1  # 24 + 7 - 1 = 30
+
+        # Generate predictions for the specified date range [24, 25, 26, 27, 28, 29, 30]
+        model_predictions = self.model.predict(start=start_forecasting, end=end_forecasting, dynamic=False)
+        return model_predictions
+                    
     def model_predictions_to_df(self, y_true_predictions_df, model_predictions):
         y_true_predictions_df[self.train_type_name] = model_predictions
         return y_true_predictions_df
@@ -142,82 +171,12 @@ class AR_Model(Model):
             A list of lag values that are over a threshold to pass to autoregressive model
 
         """
-        print(f"{self.lag_p}")
         self.model = AutoReg(train_data_df, lags=self.lag_p).fit()
 
     def summary(self):
         """Return the summary of the autoregressive model."""
         return self.model.summary()
     
-    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame) -> np.array:
-        """Make predictions with trained autoregressive moving average model.
-
-        Parameters:
-        -----------
-        historical_data_df: `pd.DataFrame`
-            The data we used to train our model(s)
-
-        y_true_predictions_df: `pd.DataFrame`
-            The actual forecasts
-
-        retrain: `bool`
-            False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
-            True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
-
-        Returns:
-        --------
-        model_predictions: `np.array`
-            A list of predictions
-
-        """
-
-        start_forecasting = len(historical_data_df)  # 24
-        end_forecasting = start_forecasting + len(y_true_predictions_df) - 1  # 24 + 7 - 1 = 30
-
-        # Generate predictions for the specified date range [24, 25, 26, 27, 28, 29, 30]
-        model_predictions = self.model.predict(start=start_forecasting, end=end_forecasting, dynamic=False)
-        return model_predictions
-                    
-# Need to rebuild and verify
-class MA(Model):
-    def __name__(self):
-        return "MA"
-
-    # def train_predict_ma_model(self, ts_df: pd.DataFrame, training_data_len: int, testing_data_len: int, window_len: int, test_error_term: int) -> list:
-    #     """Initial, train, and predict using the moving average model per https://github.com/marcopeix/TimeSeriesForecastingInPython/blob/master/CH04/CH04.ipynb
-
-    #     Parameters:
-    #     -----------
-    #     ts_df: `pd.DataFrame`
-    #         Data to train our moving average model
-    #     training_data_len: `pd.DataFrame`
-    #         Length of training data
-    #     testing_data_len: `pd.DataFrame`
-    #         Length of testing data
-    #     window_len: `int`
-    #         Length of sliding window for our moving average model
-    #     test_error_terms: `int`
-    #         A single error term to pass to our moving average model. Formally known as q for MA(q)
-
-    #     Returns:
-    #     --------
-    #     predicted_forecasts: `list`
-    #         A list of predicted forecasts
-
-    #     """
-    #     predicted_forecasts = []
-    #     total_len = training_data_len + testing_data_len
-
-    #     for i in range(training_data_len, total_len, window_len):
-
-    #         ma_model = SARIMAX(ts_df[:i], order=(0, 0, test_error_term))
-    #         trained_ma_model = ma_model.fit(disp=False)
-    #         predictions = trained_ma_model.get_prediction(0, i + window_len - 1)
-    #         oos_pred = predictions.predicted_mean.iloc[-window_len:]
-    #         predicted_forecasts.extend(oos_pred)
-
-    #     return predicted_forecasts
-
 class MA_Model(Model):
     """A class used to initialize, train, and forecast predictions with our moving average model."""
 
@@ -244,53 +203,6 @@ class MA_Model(Model):
             A trained moving average model
         """
         self.model = ARIMA(train_data_df, order=(0, 0, self.error_q)).fit()
-
-    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool) -> np.array:
-        """Make predictions with a trained moving average model.
-
-        Parameters:
-        -----------
-        historical_data_df: `pd.DataFrame`
-            The data used to train the model
-        y_true_predictions_df: `pd.DataFrame`
-            The actual forecasts
-        retrain: `bool`
-            False - predict values without updating or retraining the model
-            True - predict values with updating or retraining the model
-
-        Returns:
-        --------
-        model_predictions: `np.array`
-            A list of predictions
-        """
-        if retrain == False:
-            historical_dates = list(historical_data_df.index)
-            y_true_dates = list(y_true_predictions_df.index)
-            start = len(historical_dates)
-            end = start + len(y_true_dates) - 1
-            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
-            return model_predictions
-        elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - self.error_q
-            history = historical_data_df[start_retrain_idx:].values.tolist()
-            for i in range(len(history)):
-                history[i] = np.array(history[i])
-            test = y_true_predictions_df.values
-            predictions = list()
-            for t in range(len(test)):
-                length = len(history)
-                lag = [history[i] for i in range(length - self.error_q, length)]
-                coef = self.model.params
-                yhat = coef[0]
-                for d in range(self.error_q):
-                    yhat += coef[d+1] * lag[self.error_q-d-1]
-                obs = test[t]
-                predictions.append(yhat)
-                history.append(obs)
-                augmented_predictions = self.augment_retrain_predictions(predictions)
-
-            return augmented_predictions
-            
 
 class ARMA(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive moving average model.
@@ -327,74 +239,6 @@ class ARMA(Model):
         """
 
         self.model = ARIMA(train_data_df, order=(self.lag_p, 0, self.error_q), trend="n").fit()
-
-    def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool) -> np.array:
-        """Make predictions with trained autoregressive moving average model.
-
-        Parameters:
-        -----------
-        trained_arma_model: AR models
-            Trained autoregressive moving average model
-
-        historical_data_df: `pd.DataFrame`
-            The data we used to train our model(s)
-
-        y_true_predictions_df: `pd.DataFrame`
-            The actual forecasts
-
-        retrain: `bool`
-            False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
-            True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
-
-        Returns:
-        --------
-        model_predictions: `np.array`
-            A list of predictions
-
-        """
-
-        if retrain == False:
-            # Example: Days 1 - 30 with forecast of 7 days
-            historical_dates = list(historical_data_df.index) # 1 - 23
-            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-            # print(f"Predictions for dates {y_true_dates}")
-
-            start = len(historical_dates) # 23
-            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
-
-            # verify y_true_dates
-            # all_dates = historical_dates + y_true_dates # 1 - 30
-            # prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
-            # print(f"Predictions for dates {prediction_dates}")
-
-            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
-            return model_predictions
-
-        elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - lags
-            history = historical_data_df[start_retrain_idx:].values.tolist()
-            for i in range(len(history)):
-                history[i] = np.array(history[i])
-            test = y_true_predictions_df.values
-
-            predictions = list()
-            for t in range(len(test)):
-                length = len(history)
-                lag = [history[i] for i in range(length - lags, length)]
-                coef = self.model.params
-
-                yhat = coef[0]
-                for d in range(lags):
-                    yhat += coef[d+1] * lag[lags-d-1]
-                obs = test[t]
-                predictions.append(yhat)
-                history.append(obs)
-
-                augmented_predictions = self.augment_retrain_predictions(predictions)
-
-            return augmented_predictions
-            
-            
 
 class ARIMA_model_old(Model):
     def __name__(self):
@@ -641,3 +485,45 @@ class EvaluationMetric:
         else:
             mape = mean_absolute_percentage_error(true_predictions, model_predictions)
             print('Test MAPE: %.3f' % mape)
+
+
+
+# Need to rebuild and verify
+# class MA(Model):
+#     def __name__(self):
+#         return "MA"
+
+    # def train_predict_ma_model(self, ts_df: pd.DataFrame, training_data_len: int, testing_data_len: int, window_len: int, test_error_term: int) -> list:
+    #     """Initial, train, and predict using the moving average model per https://github.com/marcopeix/TimeSeriesForecastingInPython/blob/master/CH04/CH04.ipynb
+
+    #     Parameters:
+    #     -----------
+    #     ts_df: `pd.DataFrame`
+    #         Data to train our moving average model
+    #     training_data_len: `pd.DataFrame`
+    #         Length of training data
+    #     testing_data_len: `pd.DataFrame`
+    #         Length of testing data
+    #     window_len: `int`
+    #         Length of sliding window for our moving average model
+    #     test_error_terms: `int`
+    #         A single error term to pass to our moving average model. Formally known as q for MA(q)
+
+    #     Returns:
+    #     --------
+    #     predicted_forecasts: `list`
+    #         A list of predicted forecasts
+
+    #     """
+    #     predicted_forecasts = []
+    #     total_len = training_data_len + testing_data_len
+
+    #     for i in range(training_data_len, total_len, window_len):
+
+    #         ma_model = SARIMAX(ts_df[:i], order=(0, 0, test_error_term))
+    #         trained_ma_model = ma_model.fit(disp=False)
+    #         predictions = trained_ma_model.get_prediction(0, i + window_len - 1)
+    #         oos_pred = predictions.predicted_mean.iloc[-window_len:]
+    #         predicted_forecasts.extend(oos_pred)
+
+    #     return predicted_forecasts
