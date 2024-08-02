@@ -33,17 +33,11 @@ class Model(ABC):
     def __name__(self):
         pass
 
-    def __init__(self, no_retrain_name, retrain_name, lag_p: int = None, error_q: int = None):
-        self.no_retrain_name = self.__name__() + no_retrain_name
-        self.retrain_name = self.__name__() + retrain_name
-        self.lag_p = lag_p
-        self.error_q = error_q
+    def __init__(self, train_type_name: str):
+        self.train_type_name = self.__name__() + train_type_name
 
-    def model_predictions_to_df(self, y_true_predictions_df, model_predictions_no_retrain, model_predictions_retrain):
-        
-        y_true_predictions_df[self.no_retrain_name] = model_predictions_no_retrain
-        y_true_predictions_df[self.retrain_name] = model_predictions_retrain
-        
+    def model_predictions_to_df(self, y_true_predictions_df, model_predictions):
+        y_true_predictions_df[self.train_type_name] = model_predictions
         return y_true_predictions_df
     
     def augment_retrain_predictions(self, model_predictions_retrain):
@@ -326,9 +320,9 @@ class MA_Model(Model):
                 obs = test[t]
                 predictions.append(yhat)
                 history.append(obs)
-                augmented_predictions = self.augment_retrain_predictions(predictions)
+            augmented_predictions = self.augment_retrain_predictions(predictions)
 
-            return augmented_predictions
+        return augmented_predictions
             
 
 class ARMA(Model):
@@ -408,9 +402,9 @@ class ARMA(Model):
 
             model_predictions = self.model.predict(start=start, end=end, dynamic=False)
             return model_predictions
-        
+
         elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - self.lag_p
+            start_retrain_idx = len(historical_data_df) - lags
             history = historical_data_df[start_retrain_idx:].values.tolist()
             for i in range(len(history)):
                 history[i] = np.array(history[i])
@@ -419,18 +413,20 @@ class ARMA(Model):
             predictions = list()
             for t in range(len(test)):
                 length = len(history)
-                lag = [history[i] for i in range(length - self.lag_p, length)]
+                lag = [history[i] for i in range(length - lags, length)]
                 coef = self.model.params
 
                 yhat = coef[0]
-                for d in range(self.lag_p):
-                    yhat += coef[d+1] * lag[self.lag_p-d-1]
-                    obs = test[t]
+                for d in range(lags):
+                    yhat += coef[d+1] * lag[lags-d-1]
+                obs = test[t]
                 predictions.append(yhat)
                 history.append(obs)
+
                 augmented_predictions = self.augment_retrain_predictions(predictions)
 
             return augmented_predictions
+            
             
 
 class ARIMA_model_old(Model):
