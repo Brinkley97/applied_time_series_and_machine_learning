@@ -215,7 +215,44 @@ class InterpolatePlotter(Plotter):
             plt.legend()
             plt.show()
 
-    def plot_training_and_testing_data(self, train_data_df: pd.DataFrame, train_labels_df: pd.DataFrame, test_data_df: pd.DataFrame, test_labels_df: pd.DataFrame, predictions=None):
+    def plot_ts_training_and_testing_data(self,
+                                          train_data_df: pd.DataFrame, 
+                                          test_data_df: pd.DataFrame,
+                                          scatter_type: bool, 
+                                          predictions_df: pd.DataFrame = None):
+        """
+        Plots training data, test data, and compares predictions.
+        """
+
+        plt.figure(figsize=(7, 7))
+        plt.xlabel("Observations")
+        plt.ylabel("Values")
+
+        train_idx = train_data_df.index
+        train_values = train_data_df.iloc[:, 0].values
+        test_idx = test_data_df.index
+        test_values = test_data_df.iloc[:, 0].values
+
+        if scatter_type:
+            plt.scatter(train_idx, train_values, c="b", s=4, label="Training data")
+            plt.scatter(test_data_df.index, test_data_df.iloc[:, 0].values, c="g", s=10, label="Testing data")
+
+            if predictions_df is not None:
+                prediction_values = predictions_df.values
+                plt.scatter(test_data_df.values, prediction_values, c="r", s=4, label="Predictions")
+
+        else:
+            plt.plot(train_idx, train_values, c="b", label="Training data")
+            plt.plot(test_idx, test_values, c="g", label="Testing data")
+            
+            if predictions_df is not None:
+                    prediction_values = predictions_df.values
+                    plt.plot(test_idx, prediction_values, c="r", label="Predictions")
+            
+        plt.legend(prop={"size": 14})
+        plt.show()
+    
+    def plot_ml_training_and_testing_data(self, train_data_df: pd.DataFrame, train_labels_df: pd.DataFrame, test_data_df: pd.DataFrame, test_labels_df: pd.DataFrame, predictions=None):
         """
         Plots training data, test data, and compares predictions.
         """
