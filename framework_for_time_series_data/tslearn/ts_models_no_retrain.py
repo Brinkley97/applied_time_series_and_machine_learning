@@ -33,10 +33,11 @@ class Model(ABC):
     def __name__(self):
         pass
 
-    def __init__(self, train_type_name: str, lag_p: int = None, error_q: int = None):
+    def __init__(self, train_type_name: str, lag_p: int = None, error_q: int = None, integrated_d = None):
         self.train_type_name = self.__name__() + train_type_name
         self.lag_p = lag_p
         self.error_q = error_q
+        self.integrated_d = integrated_d
 
     def make_predictions(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame) -> np.array:
         """Make predictions with trained autoregressive moving average model.
@@ -204,14 +205,14 @@ class MA_Model(Model):
         """
         self.model = ARIMA(train_data_df, order=(0, 0, self.error_q)).fit()
 
-class ARMA(Model):
+class ARMA_Model(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive moving average model.
 
     Modifying AR code bc we verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
 
     """
     def __name__(self):
-        return "ARMA"
+        return "ARMA Model"
 
     def summary(self):
         """Return the summary of the autoregressive model."""
@@ -240,80 +241,14 @@ class ARMA(Model):
 
         self.model = ARIMA(train_data_df, order=(self.lag_p, 0, self.error_q), trend="n").fit()
 
-class ARIMA_model_old(Model):
-    def __name__(self):
-        return "ARIMA"
-
-    def train_arima_model(self, train_data: np.array, test_lag_term: int, integrated: int, test_error_term: int) -> list:
-        """Initial and train an autoregressive integrated moving average model.
-
-        Parameters:
-        -----------
-        train_data: `np.array`
-            Data to train our autoregressive model on
-        test_lags: `list`
-            A list of lag values to pass to autoregressive model
-        test_error_terms: `list`
-            A list of error terms to pass to moving average model
-        integrated: `int`
-            An integer value to difference the TS
-
-        Returns:
-        --------
-        trained_arima_models: `list`
-            A list of trained autoregressive integrated moving average models
-
-        """
-        trained_arima_models = []
-
-        arima_model = ARIMA(train_data, order=(test_lag_term, integrated, test_error_term))
-        trained_arima_model = arima_model.fit()
-        print(trained_arima_model.summary())
-        trained_arima_models.append(trained_arima_model)
-
-        return trained_arima_models
-
-    def predict(self, trained_arima_models, go: int, stop: int) -> np.array:
-        """Make predictions with trained autoregressive integrated moving average models on the .
-
-        Parameters:
-        -----------
-        trained_arma_models: `ARMA models`
-            Trained autoregressive moving average models
-        len_historical_data: `np.array`
-            The length of our historical data
-        train: `np.array`
-            The training data
-        test: `np.array`
-            The testing data
-
-        Returns:
-        --------
-        predictions: `list`
-            A list of predictions for each autoregressive integrated moving average model
-
-        """
-
-        predictions = []
-
-        for trained_arima_models_idx in range(len(trained_arima_models)):
-            trained_arima_model = trained_arima_models[trained_arima_models_idx]
-            print("ARIMA(", trained_arima_model, ")")
-            model_prediction = trained_arima_model.predict(start=go, end=stop, dynamic=False)
-            predictions.append(model_prediction)
-
-        return predictions
-
-class ARIMA_model(Model):
+class ARIMA_Model(Model):
     """A class used to initialize, train, and forecast predictions with our autoregressive integrated moving average model.
-
-    Modifying AR code bc we verified with https://machinelearningmastery.com/autoregression-models-time-series-forecasting-python/
 
     """
     def __name__(self):
-        return "ARIMA"
+        return "ARIMA Model"
 
-    def train_arima_model(self, train_data_df: pd.DataFrame, lag_p: int, integrated_d : int, error_q: int):
+    def train(self, train_data_df: pd.DataFrame):
         """Initial and train an autoregressive integrated moving average model.
 
         Parameters:
@@ -337,74 +272,8 @@ class ARIMA_model(Model):
 
         """
 
-        self.model = ARIMA(train_data_df, order=(lag_p, integrated_d, error_q), trend="n").fit()
+        self.model = ARIMA(train_data_df, order=(self.lag_p, self.integrated_d, self.error_q), trend="n").fit()
 
-    def predict(self, historical_data_df: pd.DataFrame, y_true_predictions_df: pd.DataFrame, retrain: bool, lag_to_test: int = None) -> np.array:
-        """Make predictions with trained autoregressive integrated moving average model.
-
-        Parameters:
-        -----------
-        trained_arima_model: ARIMA models
-            Trained autoregressive integrated moving average model
-
-        historical_data_df: `pd.DataFrame`
-            The data we used to train our model(s)
-
-        y_true_predictions_df: `pd.DataFrame`
-            The actual forecasts
-
-        retrain: `bool`
-            False --- predicts values for future time points without updating or retraining the model with new data. It simply uses the existing trained model to make predictions.
-            True --- predicts values for future time points with updating or retraining the model with new data.  It involves retraining the model using a subset of historical data and possibly other parameters, then making predictions based on the updated model.
-
-        Returns:
-        --------
-        model_predictions: `np.array`
-            A list of predictions
-
-        """
-
-        if retrain == False:
-            # Example: Days 1 - 30 with forecast of 7 days
-            historical_dates = list(historical_data_df.index) # 1 - 23
-            y_true_dates = list(y_true_predictions_df.index) # 24 - 30
-            # print(f"Predictions for dates {y_true_dates}")
-
-            start = len(historical_dates) # 23
-            end = start + len(y_true_dates) - 1 # 23 + 7 - 1 - 29
-
-            # verify y_true_dates
-            # all_dates = historical_dates + y_true_dates # 1 - 30
-            # prediction_dates = list(all_dates[len(historical_dates):]) # 24 - 30
-            # print(f"Predictions for dates {prediction_dates}")
-
-            model_predictions = self.model.predict(start=start, end=end, dynamic=False)
-            return model_predictions
-
-        elif retrain == True:
-            start_retrain_idx = len(historical_data_df) - lag_to_test
-            history = historical_data_df[start_retrain_idx:].values.tolist()
-            for i in range(len(history)):
-                history[i] = np.array(history[i])
-            test = y_true_predictions_df.values
-
-            predictions = list()
-            for t in range(len(test)):
-                length = len(history)
-                lag = [history[i] for i in range(length - lag_to_test, length)]
-                coef = self.model.params
-
-                yhat = coef[0]
-                for d in range(lag_to_test):
-                    yhat += coef[d+1] * lag[lag_to_test-d-1]
-                    obs = test[t]
-                predictions.append(yhat)
-                history.append(obs)
-                # print('predicted=%f, expected=%f' % (yhat, obs))
-
-            return predictions
-        else:
-            print(f"{retrain} is NOT a valid name for retrain")
 
 @dataclass
 class EvaluationMetric:
@@ -527,3 +396,67 @@ class EvaluationMetric:
     #         predicted_forecasts.extend(oos_pred)
 
     #     return predicted_forecasts
+
+    # class ARIMA_model_old(Model):
+    # def __name__(self):
+    #     return "ARIMA"
+
+    # def train_arima_model(self, train_data: np.array, test_lag_term: int, integrated: int, test_error_term: int) -> list:
+    #     """Initial and train an autoregressive integrated moving average model.
+
+    #     Parameters:
+    #     -----------
+    #     train_data: `np.array`
+    #         Data to train our autoregressive model on
+    #     test_lags: `list`
+    #         A list of lag values to pass to autoregressive model
+    #     test_error_terms: `list`
+    #         A list of error terms to pass to moving average model
+    #     integrated: `int`
+    #         An integer value to difference the TS
+
+    #     Returns:
+    #     --------
+    #     trained_arima_models: `list`
+    #         A list of trained autoregressive integrated moving average models
+
+    #     """
+    #     trained_arima_models = []
+
+    #     arima_model = ARIMA(train_data, order=(test_lag_term, integrated, test_error_term))
+    #     trained_arima_model = arima_model.fit()
+    #     print(trained_arima_model.summary())
+    #     trained_arima_models.append(trained_arima_model)
+
+    #     return trained_arima_models
+
+    # def predict(self, trained_arima_models, go: int, stop: int) -> np.array:
+    #     """Make predictions with trained autoregressive integrated moving average models on the .
+
+    #     Parameters:
+    #     -----------
+    #     trained_arma_models: `ARMA models`
+    #         Trained autoregressive moving average models
+    #     len_historical_data: `np.array`
+    #         The length of our historical data
+    #     train: `np.array`
+    #         The training data
+    #     test: `np.array`
+    #         The testing data
+
+    #     Returns:
+    #     --------
+    #     predictions: `list`
+    #         A list of predictions for each autoregressive integrated moving average model
+
+    #     """
+
+    #     predictions = []
+
+    #     for trained_arima_models_idx in range(len(trained_arima_models)):
+    #         trained_arima_model = trained_arima_models[trained_arima_models_idx]
+    #         print("ARIMA(", trained_arima_model, ")")
+    #         model_prediction = trained_arima_model.predict(start=go, end=stop, dynamic=False)
+    #         predictions.append(model_prediction)
+
+    #     return predictions

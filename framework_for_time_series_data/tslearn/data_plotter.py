@@ -366,3 +366,4 @@ class LossCurvePlotter:
         plt.ylabel("Loss")
         plt.legend()
         plt.show()
+
