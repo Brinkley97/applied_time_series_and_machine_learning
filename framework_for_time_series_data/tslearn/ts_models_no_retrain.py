@@ -69,14 +69,9 @@ class Model(ABC):
         return model_predictions
                     
     def model_predictions_to_df(self, y_true_predictions_df, model_predictions):
-        y_true_predictions_df[self.train_type_name] = model_predictions
-        return y_true_predictions_df
-    
-    def augment_retrain_predictions(self, model_predictions_retrain):
-        concatenated_output = np.concatenate(model_predictions_retrain)
-        # Format the output
-        formatted_output = np.array(concatenated_output)
-        return formatted_output
+        all_predictions_df = y_true_predictions_df.copy()
+        all_predictions_df[self.train_type_name] = model_predictions
+        return all_predictions_df    
         
     def forward(self):
         pass
@@ -355,8 +350,12 @@ class EvaluationMetric:
             mape = mean_absolute_percentage_error(true_predictions, model_predictions)
             print('Test MAPE: %.3f' % mape)
 
-
-
+def augment_retrain_predictions(input_to_augment):
+    concatenated_output = np.concatenate(input_to_augment)
+    # Format the output
+    formatted_output = np.array(concatenated_output)
+    return formatted_output
+    
 # Need to rebuild and verify
 # class MA(Model):
 #     def __name__(self):
