@@ -44,6 +44,7 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
     """
 
     stock_df = yf.download(stock_symbol, start=start_date, end=end_date, interval=frequency)
+    stock_df.index = pd.to_datetime(stock_df.index)
 
     return UnivariateTimeSeries(
         time_col="Date",

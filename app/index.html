@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <title>Stock Market Forecasts</title>
+    
+        <!-- BOOTSTRAP CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+     
+        <!-- FONT AWESOME FONTS -->
+        <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
+
+        <!-- GOOGLE FONTS -->
+        <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css">
+        <link href='https://fonts.googleapis.com/css?family=Kaushan+Script' rel='stylesheet' type='text/css'>
+        <link href='https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+        <link href='https://fonts.googleapis.com/css?family=Roboto+Slab:400,100,300,700' rel='stylesheet' type='text/css'>
+
+        <!-- MY CSS -->
+        <link href="css/index.css" rel="stylesheet">
+    </head>
+    
+    <body id="page-top">
+
+        <h1>Stock Market Forecasts</h1>
+        <!-- <h1>Optimal Investments</h1> -->
+        <!-- Multi-select to compare -->
+        <section>
+            <h2>Select Stock</h2>
+            <!-- <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Select any stocks<span class="caret"></span></button>
+                <ul class="dropdown-menu">
+                    <li>Stock 1</li>
+                    <li>Stock 2</li>
+                </ul>
+            </div> -->
+            <div class="dropdown">
+                <label for="stock">Choose any stock</label>
+                <select name="stock" id="stock" multiple>
+                    <option value="stock 1">stock 1</option>
+                    <option value="stock 2">stock 2</option>
+                </select>
+            </div>
+
+            <img src="../img/original-forecast_sse-ar.png"></img>
+        </section>
+
+        
+        <section>
+            <h2>Select Model Parameters + Model</h2>
+            <label for="begin_date">Start date</label>
+            <input type="text" name="begin_date" id="begin_date"><br><br>
+            <label for="end_date">End date</label>
+            <input type="text" name="end_date" id="end_date"><br><br>
+            
+            <!-- Multi-select to compare -->
+            <div class="dropdown">
+                <label for="forecast_model">Choose any forecasting models</label>
+                <select name="forecast_model" id="forecast_model" multiple>
+                    <option value="model 1">model 1</option>
+                    <option value="model 2">model 2</option>
+                </select>
+            </div>
+            <img src="../img/pre-forecast_sse-ar.png"></img>
+        </section>
+
+        <section>
+            <h2>Model Output</h2>
+            <!-- <label for="begin_date">Start date</label>
+            <input type="text" name="begin_date" id="begin_date"><br><br>
+            <label for="end_date">End date</label>
+            <input type="text" name="end_date" id="end_date"><br><br> -->
+            
+            <!-- Multi-select to compare -->
+            <!-- <div class="dropdown">
+                <label for="forecast_model">Choose any forecasting models</label>
+                <select name="forecast_model" id="forecast_model" multiple>
+                    <option value="model 1">model 1</option>
+                    <option value="model 2">model 2</option>
+                </select>
+            </div> -->
+            <img src="../img/post-forecast_sse-ar.png"></img>
+        </section>
+
+        
+        
+
+
+
+
+        <script src="js/index.js"></script>
+
+        <!-- BOOTSTRAP JS -->
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    
+    </body>
+</html>

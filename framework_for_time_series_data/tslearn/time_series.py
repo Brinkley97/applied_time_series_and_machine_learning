@@ -204,24 +204,124 @@ class TimeSeriesMixin(ABC):
 
         return col_names, col_values, df
 
-    def get_statistics(self) -> pd.DataFrame:
+    def get_statistics(self, time_type: str, stock_data: bool) -> pd.DataFrame:
         """Get the statistics of the univariate time series data.
 
-        Returns
-        -------
+        Parameters:
+        -----------
+        time_type: str
+            A parameter to replace the "count" row in the statistics dataframe.
+            Also in doc string, add that time_type can be
+
+        Returns:
+        --------
         stats: `pd.DataFrame`
             The statistics of the univariate time series data
         """
-        return self.data.describe()
+        stats = self.data.describe().round(2) # Original data
 
-    # write code to support the returning of the specific date for the max, min, and range
-    def range_skewness_kurtosis(self, axis: int = 0) -> pd.Series:
+        # Rename count column to total days, weeks, etc
+        count_value = int(stats.loc['count'])
+        total_time_type = f"total {time_type}"
+        stats.loc[total_time_type] = count_value
+        stats = stats.drop(index='count')
+
+        if stock_data:
+            # Dictionary for renaming stock data statistics
+            rename_dict = {
+                'min': 'lowest price',
+                'max': 'highest price',
+                'mean': 'average price',
+                'std': 'price volatility',
+                '25%': '25th percentile price',
+                '50%': 'median price',
+                '75%': '75th percentile price'
+            }
+            
+            # Rename statistics
+            stats = self.rename_statistics(stats, rename_dict)
+            
+            # Update additional statistics
+            additional_stats = self.range_skewness_kurtosis()
+            for key, value in additional_stats.items():
+                stats.loc[key] = value
+
+            # Add dates for max and min values
+            max_dates = self.data.idxmax()
+            min_dates = self.data.idxmin()
+            stats.loc['most recent date'] = max_dates
+            stats.loc['inception date'] = min_dates
+
+        # Reorder the rows explicitly
+        ordered_stats = [
+            total_time_type, 
+            'most recent date', 
+            'inception date', 
+            'lowest price', 
+            'highest price', 
+            'average price', 
+            'range',
+            'price volatility', 
+            '25th percentile price', 
+            'median price', 
+            '75th percentile price', 
+            'skewness', 
+            'kurtosis'
+        ]
+        
+        # Ensure that all ordered statistics are present in the DataFrame
+        for stat in ordered_stats:
+            if stat not in stats.index:
+                stats.loc[stat] = pd.NA  # Add missing stats with NaN value
+
+        # Reorder the statistics DataFrame
+        stats = stats.reindex(ordered_stats)
+
+        return stats
+
+    def rename_statistics(self, stats: pd.DataFrame, rename_dict: dict) -> pd.DataFrame:
+        """Rename the statistics in the DataFrame according to the provided dictionary.
+
+        Parameters:
+        -----------
+        stats: pd.DataFrame
+            The DataFrame containing the statistics.
+        rename_dict: dict
+            A dictionary mapping old names to new names.
+
+        Returns:
+        --------
+        stats: pd.DataFrame
+            The DataFrame with updated names.
+        """
+        # Apply renaming
+        stats = stats.rename(index=rename_dict)
+        return stats
+
+    def range_skewness_kurtosis(self, axis: int = 0) -> dict:
+        """Calculate the range, skewness, and kurtosis of the univariate time series data.
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Axis for the function to be applied on.
+
+        Returns
+        -------
+        dict
+            Dictionary containing range, skewness, and kurtosis.
+        """
         max_value = self.data.max(axis=axis)
         min_value = self.data.min(axis=axis)
-        range_value = max_value - min_value
-        skewness_value = self.skewness(axis=axis)
-        kurtosis_value = self.kurt(axis=axis)
-        return ({"Range": range_value, "Skewness": skewness_value, "Kurtosis": kurtosis_value})
+        range_value = round(max_value - min_value, 2)
+        skewness_value = self.data.skew(axis=axis)
+        kurtosis_value = self.data.kurtosis(axis=axis)
+
+        return {
+            "range": range_value,
+            "skewness": skewness_value,
+            "kurtosis": kurtosis_value
+        }
 
     def mean(self, axis: int = 0):
         return self.data.mean(axis=axis)
@@ -511,7 +611,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             print('BDS Statistic: %f' % bds_result[0])
             print('p-value: %f' % bds_result[1], '>', significance_level, ', so accept the null-hypothesis as the differenced TS is dependent')
 
-    def plot_autocorrelation(self, max_lag: int = 1, plot_full: bool = False):
+    def plot_autocorrelation(self, max_lag: int, plot_full: bool = False):
         """Plot the autocorrelation of the time series data.
 
         Parameters
@@ -526,7 +626,8 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         plt.figure(figsize=(20, 4))
         plt.xlabel("Lag")
         plt.ylabel("Autocorrelation Coefficient")
-        plt.title(f"Autocorrelation Matrix of {self} with Lag {max_lag}")
+        acor_title = f"Autocorrelation Matrix of {self} with Lag {max_lag}"
+        plt.title(acor_title)
 
         # Plot the autocorrelation matrix as a bar plot where the height of the
         # bar is the autocorrelation for the given lag. The range of the bar
@@ -554,7 +655,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         plt.show()
 
-        tsaplots.plot_acf(self.data)
+        tsaplots.plot_acf(self.data, lags=max_lag, title=acor_title)
         plt.show()
 
     def plot_partial_autocorrelation(self, max_lag: int = 1):
