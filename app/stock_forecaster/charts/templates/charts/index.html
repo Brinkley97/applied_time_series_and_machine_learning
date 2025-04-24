@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Chart Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chart {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Stock Chart Viewer</h1>
+    
+    <form id="stockForm" method="POST" action="{% url 'get_chart' %}">
+        {% csrf_token %}
+        <label for="stocks">Select Stocks:</label><br>
+        <select id="stocks" name="stocks" multiple size="5">
+            <option value="AAPL">Apple (AAPL)</option>
+            <option value="MSFT">Microsoft (MSFT)</option>
+            <option value="GOOGL">Google (GOOGL)</option>
+            <option value="TSLA">Tesla (TSLA)</option>
+            <option value="AMZN">Amazon (AMZN)</option>
+        </select><br><br>
+        <button type="submit">Generate Chart</button>
+    </form>
+
+    <div id="chart">
+        <img id="stockChart" src="" alt="Your stock chart will appear here">
+    </div>
+
+    <script>
+        document.getElementById('stockForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                document.getElementById('stockChart').src = url;
+            })
+            .catch(err => console.error('Error fetching the chart:', err));
+        });
+    </script>
+</body>
+</html>
