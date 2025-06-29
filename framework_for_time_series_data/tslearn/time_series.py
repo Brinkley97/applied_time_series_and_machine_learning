@@ -143,42 +143,12 @@ class TimeSeriesMixin(ABC):
     "from https://chatgpt.com/c/fa331693-fa17-4397-be72-a1b5413c6a41"
 
     def __init__(self, **kwargs: TimeSeriesParameters):
-
-        col_names, col_values, df = TimeSeriesMixin._get_col_names_and_values(
-            **kwargs
-        )
-        # print("col_names: ", col_names)
-        # print("col_values: ", col_values)
-        # print()
-
-        if not TimeSeriesFactory._is_univariate_time_series(**kwargs):
-            time_col, time_values, values_cols, values = df[0], df[1], df[2], df[3]
-
-            self.data = pd.DataFrame()
-            # print("values: ", type(values), values)
-            for values_idx in range(len(values)):
-                nth_col = values[values_idx]
-                self.data[values_cols[values_idx]] = nth_col
-                self.data.index.name = time_col
-                self.data.index = time_values
-
-            # if len(values) == 1:
-            #     for value_col in values_per_value_col:
-            #         print("value_col: ", value_col)
-            #         cvs.append(value_col)
-            #     col_values = cvs
-            #     print("col_values-2: ", type(col_values), col_values)
-
-            # self.data = pd.DataFrame({col: vals for col, vals in zip(values_cols, value)})
-            # self.data.set_index(kwargs["time_col"], inplace=True)
-        if TimeSeriesFactory._is_univariate_time_series(**kwargs):
-            self.data = pd.DataFrame(
-                {
-                    name: data for name, data in zip(col_names, col_values)
-                }
-            )
-            self.data.set_index(kwargs["time_col"], inplace=True)
-    
+            self.time_col = kwargs['time_col']
+            self.time_values = kwargs['time_values']
+            self.values_cols = kwargs['values_cols']
+            self.values = np.array(kwargs['values']).reshape(-1, 1)
+            self.data = pd.DataFrame(self.values, columns=[self.values_cols], index=self.time_values)
+        
     @staticmethod
     def _get_col_names_and_values(**kwargs: TimeSeriesParameters) -> Tuple[List[str], List[Any]]:
         """Get the column names and values from the time series parameters."""
