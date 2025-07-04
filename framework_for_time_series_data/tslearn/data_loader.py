@@ -11,7 +11,7 @@ import pandas as pd
 import yfinance as yf
 import statsmodels.api as sm
 
-from time_series import UnivariateTimeSeries
+from tslearn.time_series import UnivariateTimeSeries
 
 def build_airline_passenger_uts() -> UnivariateTimeSeries:
     # Get air passenger data and build our UTS

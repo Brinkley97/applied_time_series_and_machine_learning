@@ -1,0 +1,20 @@
+# framework_for_time_series_data/pyproject.toml
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tslearn"
+version = "0.1.0"
+description = "A custom framework for time series analysis and forecasting."
+dependencies = [
+    "pandas",
+    "yfinance",
+    "matplotlib"
+]
+
+# Look for tslearn specifically
+[tool.setuptools.packages.find]
+where = ["."]  # Look in the current directory
+include = ["tslearn*"] # Only include packages that start with 'tslearn'

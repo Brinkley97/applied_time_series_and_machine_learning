@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
 
-from constants import Number, TimeSeriesData
+from tslearn.constants import Number, TimeSeriesData
 from typing import List, Tuple, Union, Any, TypedDict
 
 TimeSeries = Union["UnivariateTimeSeries", "MultivariateTimeSeries"]
@@ -487,24 +487,30 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         return autocovariance_matrix / self.variance()[0]
 
     def plot(self, tick_skip=90):
-        # Plot the time series data
+        # 1. Create a Figure and an Axes object explicitly.
+        #    'fig' is the whole window, 'ax' is the plot inside it.
+        fig, ax = plt.subplots(figsize=(20, 5))
 
-        plt.figure(figsize=(20, 5))  # Optional: Adjust the figure size
+        # 2. Use the 'ax' object for all plotting operations.
+        #    Instead of plt.plot(), we use ax.plot().
+        ax.plot(self.data.index, self.data[self.get_value_col_name])
 
-        # self.data is a pd.DataFrame
-        plt.plot(self.data.index, self.data[self.get_value_col_name])
-        plt.xlabel(self.get_time_col_name)
-        plt.ylabel(self.get_value_col_name)
-        plt.title(f"Plot of {self}")
+        # 3. Set labels and titles on the 'ax' object.
+        ax.set_xlabel(self.get_time_col_name)
+        ax.set_ylabel(self.get_value_col_name)
+        ax.set_title(f"Plot of {self}")
 
-        ax = plt.gca()
+        # 4. Customize the axes directly.
         ax.xaxis.set_major_locator(ticker.MultipleLocator(base=tick_skip))
+        ax.tick_params(axis='x', rotation=45, labelsize=10) # More explicit rotation
 
-        # Rotate the x-axis tick labels for better visibility (optional)
-        plt.xticks(rotation=45)
+        # 5. Ensure a tight layout to prevent labels from being cut off.
+        fig.tight_layout()
 
-        # Display the plot
-        plt.show()
+        # 6. CRUCIAL: Remove plt.show() and return the 'fig' object.
+        #    plt.close() is good practice in server code to release memory.
+        plt.close(fig)
+        return fig
 
     def stationarity_test(self, series):
         """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
