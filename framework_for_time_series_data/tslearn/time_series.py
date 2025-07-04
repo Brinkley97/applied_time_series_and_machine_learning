@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
 
-from constants import Number, TimeSeriesData
+from tslearn.constants import Number, TimeSeriesData
 from typing import List, Tuple, Union, Any, TypedDict
 
 TimeSeries = Union["UnivariateTimeSeries", "MultivariateTimeSeries"]
@@ -143,42 +143,12 @@ class TimeSeriesMixin(ABC):
     "from https://chatgpt.com/c/fa331693-fa17-4397-be72-a1b5413c6a41"
 
     def __init__(self, **kwargs: TimeSeriesParameters):
-
-        col_names, col_values, df = TimeSeriesMixin._get_col_names_and_values(
-            **kwargs
-        )
-        # print("col_names: ", col_names)
-        # print("col_values: ", col_values)
-        # print()
-
-        if not TimeSeriesFactory._is_univariate_time_series(**kwargs):
-            time_col, time_values, values_cols, values = df[0], df[1], df[2], df[3]
-
-            self.data = pd.DataFrame()
-            # print("values: ", type(values), values)
-            for values_idx in range(len(values)):
-                nth_col = values[values_idx]
-                self.data[values_cols[values_idx]] = nth_col
-                self.data.index.name = time_col
-                self.data.index = time_values
-
-            # if len(values) == 1:
-            #     for value_col in values_per_value_col:
-            #         print("value_col: ", value_col)
-            #         cvs.append(value_col)
-            #     col_values = cvs
-            #     print("col_values-2: ", type(col_values), col_values)
-
-            # self.data = pd.DataFrame({col: vals for col, vals in zip(values_cols, value)})
-            # self.data.set_index(kwargs["time_col"], inplace=True)
-        if TimeSeriesFactory._is_univariate_time_series(**kwargs):
-            self.data = pd.DataFrame(
-                {
-                    name: data for name, data in zip(col_names, col_values)
-                }
-            )
-            self.data.set_index(kwargs["time_col"], inplace=True)
-    
+            self.time_col = kwargs['time_col']
+            self.time_values = kwargs['time_values']
+            self.values_cols = kwargs['values_cols']
+            self.values = np.array(kwargs['values']).reshape(-1, 1)
+            self.data = pd.DataFrame(self.values, columns=[self.values_cols], index=self.time_values)
+        
     @staticmethod
     def _get_col_names_and_values(**kwargs: TimeSeriesParameters) -> Tuple[List[str], List[Any]]:
         """Get the column names and values from the time series parameters."""
@@ -517,24 +487,30 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         return autocovariance_matrix / self.variance()[0]
 
     def plot(self, tick_skip=90):
-        # Plot the time series data
+        # 1. Create a Figure and an Axes object explicitly.
+        #    'fig' is the whole window, 'ax' is the plot inside it.
+        fig, ax = plt.subplots(figsize=(20, 5))
 
-        plt.figure(figsize=(20, 5))  # Optional: Adjust the figure size
+        # 2. Use the 'ax' object for all plotting operations.
+        #    Instead of plt.plot(), we use ax.plot().
+        ax.plot(self.data.index, self.data[self.get_value_col_name])
 
-        # self.data is a pd.DataFrame
-        plt.plot(self.data.index, self.data[self.get_value_col_name])
-        plt.xlabel(self.get_time_col_name)
-        plt.ylabel(self.get_value_col_name)
-        plt.title(f"Plot of {self}")
+        # 3. Set labels and titles on the 'ax' object.
+        ax.set_xlabel(self.get_time_col_name)
+        ax.set_ylabel(self.get_value_col_name)
+        ax.set_title(f"Plot of {self}")
 
-        ax = plt.gca()
+        # 4. Customize the axes directly.
         ax.xaxis.set_major_locator(ticker.MultipleLocator(base=tick_skip))
+        ax.tick_params(axis='x', rotation=45, labelsize=10) # More explicit rotation
 
-        # Rotate the x-axis tick labels for better visibility (optional)
-        plt.xticks(rotation=45)
+        # 5. Ensure a tight layout to prevent labels from being cut off.
+        fig.tight_layout()
 
-        # Display the plot
-        plt.show()
+        # 6. CRUCIAL: Remove plt.show() and return the 'fig' object.
+        #    plt.close() is good practice in server code to release memory.
+        plt.close(fig)
+        return fig
 
     def stationarity_test(self, series):
         """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.

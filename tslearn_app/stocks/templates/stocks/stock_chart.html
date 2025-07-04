@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TSLA Stock Chart</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background-color: #f4f4f4; margin-top: 40px; }
+        h1 { color: #333; }
+        .chart-container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        img { max-width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <h1>Tesla (TSLA) Historical Price</h1>
+        <p>This chart is generated dynamically by a Django view.</p>
+        
+        <!-- The src attribute points to our plot-generating URL -->
+        <img src="{% url 'stocks:plot_png' %}" alt="Tesla Stock Chart">
+    </div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: tslearn
+Version: 0.1.0
+Summary: A custom framework for time series analysis and forecasting.
+Requires-Dist: pandas
+Requires-Dist: yfinance
+Requires-Dist: matplotlib

@@ -11,7 +11,7 @@ import pandas as pd
 import yfinance as yf
 import statsmodels.api as sm
 
-from time_series import UnivariateTimeSeries
+from tslearn.time_series import UnivariateTimeSeries
 
 def build_airline_passenger_uts() -> UnivariateTimeSeries:
     # Get air passenger data and build our UTS
@@ -43,7 +43,8 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
     `UnivariateTimeSeries`
     """
 
-    stock_df = yf.download(stock_symbol, start=start_date, end=end_date, interval=frequency)
+    stock_df = yf.download(stock_symbol, start=start_date, end=end_date, interval=frequency, auto_adjust=False)
+    # print(stock_df)
     stock_df.index = pd.to_datetime(stock_df.index)
 
     return UnivariateTimeSeries(
