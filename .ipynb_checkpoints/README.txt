@@ -1,1 +1,0 @@
-# [SPSS Tuturials Website](https://www.spss-tutorials.com/anova/)
