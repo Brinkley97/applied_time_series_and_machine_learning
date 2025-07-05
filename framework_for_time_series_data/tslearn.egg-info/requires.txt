@@ -1,3 +1,12 @@
 pandas
 yfinance
 matplotlib
+statsmodels
+django>=5.2.4
+dotenv>=0.9.9
+groq>=0.26.0
+ipdb>=0.13.13
+openai>=1.83.0
+transformers>=4.52.4
+torch
+scikit-learn
