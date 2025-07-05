@@ -41,3 +41,6 @@ framework_for_time_series_data/tslearn/__pycache__/ts_models.cpython-39.pyc
 .DS_Store
 .DS_Store
 db.sqlite3
+/tslearn_app/blog/migrations
+.vscode/settings.json
+*.sqlite3
