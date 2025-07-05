@@ -32,7 +32,8 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'stocks.apps.StocksConfig', # For stocks app
-    'users.apps.UsersConfig', # For users
+    'users.apps.UsersConfig', # For users app
+    'blog.apps.BlogConfig', # For blog app
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
