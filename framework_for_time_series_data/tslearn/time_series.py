@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
 
-from tslearn.constants import Number, TimeSeriesData
+from constants import Number, TimeSeriesData
 from typing import List, Tuple, Union, Any, TypedDict
 
 TimeSeries = Union["UnivariateTimeSeries", "MultivariateTimeSeries"]
@@ -174,7 +174,7 @@ class TimeSeriesMixin(ABC):
 
         return col_names, col_values, df
 
-    def get_statistics(self, time_type: str, stock_data: bool) -> pd.DataFrame:
+    def get_statistics(self, time_type: str, type_of_data: str) -> pd.DataFrame:
         """Get the statistics of the univariate time series data.
 
         Parameters:
@@ -196,45 +196,46 @@ class TimeSeriesMixin(ABC):
         stats.loc[total_time_type] = count_value
         stats = stats.drop(index='count')
 
-        if stock_data:
-            # Dictionary for renaming stock data statistics
-            rename_dict = {
-                'min': 'lowest price',
-                'max': 'highest price',
-                'mean': 'average price',
-                'std': 'price volatility',
-                '25%': '25th percentile price',
-                '50%': 'median price',
-                '75%': '75th percentile price'
-            }
-            
-            # Rename statistics
-            stats = self.rename_statistics(stats, rename_dict)
-            
-            # Update additional statistics
-            additional_stats = self.range_skewness_kurtosis()
-            for key, value in additional_stats.items():
-                stats.loc[key] = value
 
-            # Add dates for max and min values
-            max_dates = self.data.idxmax()
-            min_dates = self.data.idxmin()
-            stats.loc['most recent date'] = max_dates
-            stats.loc['inception date'] = min_dates
+        # Dictionary for renaming stock data statistics
+        rename_dict = {
+            'min': f'lowest {type_of_data}',
+            'max': f'highest {type_of_data}',
+            'mean': f'average {type_of_data}',
+            'std': f'{type_of_data} volatility',
+            '25%': f'25th percentile {type_of_data}',
+            '50%': f'median {type_of_data}',
+            '75%': f'75th percentile {type_of_data}'
+        }
+        
+        # Rename statistics
+        stats = self.rename_statistics(stats, rename_dict)
+        
+        # Update additional statistics
+        additional_stats = self.range_skewness_kurtosis()
+        for key, value in additional_stats.items():
+            stats.loc[key] = value
+
+        # Add dates for max and min values
+        max_dates = self.data.idxmax()
+        min_dates = self.data.idxmin()
+        stats.loc['most recent date'] = max_dates
+        stats.loc['inception date'] = min_dates
+
 
         # Reorder the rows explicitly
         ordered_stats = [
             total_time_type, 
             'most recent date', 
             'inception date', 
-            'lowest price', 
-            'highest price', 
-            'average price', 
+            f'lowest {type_of_data}', 
+            f'highest {type_of_data}', 
+            f'average {type_of_data}', 
             'range',
-            'price volatility', 
-            '25th percentile price', 
-            'median price', 
-            '75th percentile price', 
+            f'{type_of_data} volatility', 
+            f'25th percentile {type_of_data}', 
+            f'median {type_of_data}', 
+            f'75th percentile {type_of_data}', 
             'skewness', 
             'kurtosis'
         ]
@@ -1085,6 +1086,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         train_size = int(N * train_percent)
 
         if both_train_test == False:
+            
             if train_or_test == 'Train':
                 print(f"{train_or_test} size is", train_size)
                 train_sliced_uts = type(self)(
@@ -1098,12 +1100,13 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
             elif train_or_test == 'Test':
                 test_size = N - train_size
+                # test_size = N - train_size
                 print(f"{train_or_test} size is", test_size)
                 test_sliced_uts = type(self)(
                     time_col=self.get_time_col_name,
-                    time_values=self.data.index[test_size:],
+                    time_values=self.data.index[train_size:],
                     values_cols=f"{self}[{test_size}:{N}]",
-                    values=self.data[self.get_value_col_name].values[test_size:N].copy()
+                    values=self.data[self.get_value_col_name].values[train_size:N].copy()
                 )
 
                 return test_sliced_uts
