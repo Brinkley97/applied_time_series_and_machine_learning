@@ -178,15 +178,21 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
 def build_wesad_mts() -> MultivariateTimeSeries:
     """Load the WESAD Dataset. In collab with Roeh-Health, so data is saved there."""
     base_path = "../../../../"
+    
     chest_dataset_path = "startups/roeh-health/data/WESAD/all_subjects/chest.csv"
     wrist_dataset_path = "startups/roeh-health/data/WESAD/all_subjects/wrist.csv"
+    
     chest_relative_path = os.path.join(base_path, chest_dataset_path)
     wrist_relative_path = os.path.join(base_path, wrist_dataset_path)
+
     chest_df = pd.read_csv(chest_relative_path)
     wrist_df = pd.read_csv(wrist_relative_path)
 
     chest_df.drop(['Unnamed: 0'], axis=1, inplace=True)
     chest_col_names = chest_df.columns.to_list()
+    
+    wrist_df.drop(['Unnamed: 0'], axis=1, inplace=True)
+    wrist_col_names = wrist_df.columns.to_list()
     
     # chest_col_values = []
     # for chest_col_name in chest_col_names:
@@ -199,29 +205,22 @@ def build_wesad_mts() -> MultivariateTimeSeries:
     #     values=[[1, 2], [3, 4], [5, 6]]
     # )
 
-    return MultivariateTimeSeries(
+    return [
+        MultivariateTimeSeries
+        (
         time_col="Time [s/m/h]",
         time_values=chest_df.index.values,
         values_cols=chest_col_names,
         values=chest_df.values
-    )
-
-    # return [
-    #     MultivariateTimeSeries
-    #     (
-    #     time_col="Time [s/m/h]",
-    #     time_values=chest_df["Date"],
-    #     values_cols=chest_col_names,
-    #     values=chest_col_values
-    #     ), 
-    #     MultivariateTimeSeries
-    #     (
-    #     time_col="Time [s/m/h]",
-    #     time_values=wrist_df["Date"],
-    #     values_cols="Temp",
-    #     values=wrist_df["Temp"].values
-    #     )
-    # ]
+        ), 
+        MultivariateTimeSeries
+        (
+        time_col="Time [s/m/h]",
+        time_values=wrist_df.index.values,
+        values_cols=wrist_col_names,
+        values=wrist_df.values
+        )
+    ]
 
 
 
