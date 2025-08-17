@@ -11,7 +11,7 @@ import pandas as pd
 import yfinance as yf
 import statsmodels.api as sm
 
-from time_series import UnivariateTimeSeries
+from time_series import UnivariateTimeSeries, MultivariateTimeSeries
 
 def build_airline_passenger_uts() -> UnivariateTimeSeries:
     # Get air passenger data and build our UTS
@@ -55,9 +55,10 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
     )
 
 def build_downloaded_stock_uts(FILE_NAME: str, independent_variable: str) -> UnivariateTimeSeries:
-    BASE = '/Users/brinkley97/Documents/development/'
-    DATASETS = 'applied_time_series_and_machine_learning/datasets/yahoo_finance/'
-    FILE = BASE + DATASETS + FILE_NAME + '.csv'
+    BASE = '/Users/detraviousjamaribrinkley/Documents/Development/'
+    DATASETS = 'self/applied_time_series_and_machine_learning/misc/datasets/yahoo_finance/'
+    FILE = F"{BASE}{DATASETS}{FILE_NAME}.csv"
+    # print(FILE)
     stock_df = pd.read_csv(FILE)
     
 
@@ -173,6 +174,56 @@ def build_any_univariate_time_series(path_to_file: str) -> UnivariateTimeSeries:
         )
     else:
         print("File extension not supported yet. Contact me at dbrinkle@usc.edu so I can add support for this file extension.")
+
+def build_wesad_mts() -> MultivariateTimeSeries:
+    """Load the WESAD Dataset. In collab with Roeh-Health, so data is saved there."""
+    base_path = "../../../../"
+    chest_dataset_path = "startups/roeh-health/data/WESAD/all_subjects/chest.csv"
+    wrist_dataset_path = "startups/roeh-health/data/WESAD/all_subjects/wrist.csv"
+    chest_relative_path = os.path.join(base_path, chest_dataset_path)
+    wrist_relative_path = os.path.join(base_path, wrist_dataset_path)
+    chest_df = pd.read_csv(chest_relative_path)
+    wrist_df = pd.read_csv(wrist_relative_path)
+
+    chest_df.drop(['Unnamed: 0'], axis=1, inplace=True)
+    chest_col_names = chest_df.columns.to_list()
+    
+    # chest_col_values = []
+    # for chest_col_name in chest_col_names:
+    #     values = chest_df[chest_col_name].values
+    #     chest_col_values.append(values)
+    # mvts = TimeSeriesFactory.create_time_series(
+    #     time_col="date",
+    #     time_values=["2020-01-01", "2020-01-02"],
+    #     values_cols=["value1", "value2", "value3"],
+    #     values=[[1, 2], [3, 4], [5, 6]]
+    # )
+
+    return MultivariateTimeSeries(
+        time_col="Time [s/m/h]",
+        time_values=chest_df.index.values,
+        values_cols=chest_col_names,
+        values=chest_df.values
+    )
+
+    # return [
+    #     MultivariateTimeSeries
+    #     (
+    #     time_col="Time [s/m/h]",
+    #     time_values=chest_df["Date"],
+    #     values_cols=chest_col_names,
+    #     values=chest_col_values
+    #     ), 
+    #     MultivariateTimeSeries
+    #     (
+    #     time_col="Time [s/m/h]",
+    #     time_values=wrist_df["Date"],
+    #     values_cols="Temp",
+    #     values=wrist_df["Temp"].values
+    #     )
+    # ]
+
+
 
 def create_file_version(filename_with_path: str) -> str:
     """Check if file exists. If so, update with new version.

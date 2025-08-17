@@ -146,7 +146,12 @@ class TimeSeriesMixin(ABC):
             self.time_col = kwargs['time_col']
             self.time_values = kwargs['time_values']
             self.values_cols = kwargs['values_cols']
-            self.values = np.array(kwargs['values']).reshape(-1, 1)
+            
+            try:
+                self.values = np.array(kwargs['values'])
+            except ValueError:
+                self.values = np.array(kwargs['values']).reshape(-1, 1)
+                
             self.data = pd.DataFrame(self.values, columns=[self.values_cols], index=self.time_values)
         
     @staticmethod
@@ -322,8 +327,12 @@ class TimeSeriesMixin(ABC):
         return self.data.kurtosis(axis=axis)
 
     def __str__(self) -> str:
-        columns = ", ".join(self.data.columns)
+        try:
+            columns = ", ".join(self.data.columns)
+        except TypeError:
+            columns = ", ".join([str(col) for col in self.data.columns])
         return f"{self.__name__}({columns})"
+
 
     def __repr__(self):
         return str(self)
