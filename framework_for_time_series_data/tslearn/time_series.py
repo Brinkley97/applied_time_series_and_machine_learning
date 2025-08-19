@@ -1202,7 +1202,7 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         normalized_uts = type(self)(
             time_col=self.time_col,
-            time_values=self.data.index.values,
+            time_values=self.data.index.values3,
             values_cols=f"Normalized({self.get_value_col_name})",
             values=normalized_data
         )
@@ -1228,7 +1228,7 @@ class MultivariateTimeSeries(TimeSeriesMixin):
             time_col=self.data.index.name,
             time_values=self.data.index.tolist(),
             values_cols=[col_name],
-            values=self.data[col_name].tolist()
+            values=self.data[col_name].values
         )
     
     def get_as_df(self) -> pd.DataFrame:
@@ -1317,6 +1317,33 @@ class MultivariateTimeSeries(TimeSeriesMixin):
                 )
         
         # return predict_X_test_df, predict_y_test_df
+    
+    def update_with_sampling_rate(self, unit_of_time: str, start_time: int, sampling_rate: int):
+        """Data is collected every so often. Ensure data is equally sampled.
+        
+        """
+        VALID_TIMEDELTA_UNITS = [
+            "w",         # weeks
+            "d",         # days
+            "h",         # hours
+            "t", "min",  # minutes
+            "s",         # seconds
+            "ms",        # milliseconds
+            "us",        # microseconds
+            "ns"         # nanoseconds
+        ]
+
+        if unit_of_time in VALID_TIMEDELTA_UNITS:
+            start_time_td_format = pd.Timedelta(f'{start_time} {unit_of_time}')
+            time_index = pd.timedelta_range(
+                start=start_time_td_format,
+                periods=self.__len__(),
+                freq=pd.Timedelta(seconds=1/sampling_rate)
+                )
+            self.data.set_index(time_index, inplace=True)
+
+        return self.data
+
 
 if __name__ == "__main__":
     uts = TimeSeriesFactory.create_time_series(
