@@ -146,14 +146,24 @@ class TimeSeriesMixin(ABC):
             self.time_col = kwargs['time_col']
             self.time_values = kwargs['time_values']
             self.values_cols = kwargs['values_cols']
+            self.VALID_TIMEDELTA_UNITS = [
+                "w",         # weeks
+                "d",         # days
+                "h",         # hours
+                "t", "min",  # minutes
+                "s",         # seconds
+                "ms",        # milliseconds
+                "us",        # microseconds
+                "ns"         # nanoseconds
+            ]
             
             try:
                 self.values = np.array(kwargs['values'])
+                self.data = pd.DataFrame(self.values, columns=self.values_cols, index=self.time_values)
             except ValueError:
                 self.values = np.array(kwargs['values']).reshape(-1, 1)
-                
-            self.data = pd.DataFrame(self.values, columns=[self.values_cols], index=self.time_values)
-        
+                self.data = pd.DataFrame(self.values, columns=[self.values_cols], index=self.time_values)
+    
     @staticmethod
     def _get_col_names_and_values(**kwargs: TimeSeriesParameters) -> Tuple[List[str], List[Any]]:
         """Get the column names and values from the time series parameters."""
@@ -1319,21 +1329,22 @@ class MultivariateTimeSeries(TimeSeriesMixin):
         # return predict_X_test_df, predict_y_test_df
     
     def update_with_sampling_rate(self, unit_of_time: str, start_time: int, sampling_rate: int):
-        """Data is collected every so often. Ensure data is equally sampled.
+        """Data is collected every so often. Ensure data is equally sampled. For ex with Wesad dataset, the data is sampled at 700 Hz, which means for 1 sec, there exists 700 rows. This doesn't reduce the #rows. To reduce #rows, run the avg_down_sample().
+         
+        Parameters:
+        -----------
+        unit_of_time: `str`
+            The possible options to measure time as in secs, mins, hours, etc. 
         
-        """
-        VALID_TIMEDELTA_UNITS = [
-            "w",         # weeks
-            "d",         # days
-            "h",         # hours
-            "t", "min",  # minutes
-            "s",         # seconds
-            "ms",        # milliseconds
-            "us",        # microseconds
-            "ns"         # nanoseconds
-        ]
+        start_time: `int`
+            What time should row 0 be @ the unit_of_time?
+        
+        sampling_rate: `int`
+            #rows to "pad" between 1 interval (where in ex, 1 interval is 1 sec)
 
-        if unit_of_time in VALID_TIMEDELTA_UNITS:
+        """
+
+        if unit_of_time in self.VALID_TIMEDELTA_UNITS:
             start_time_td_format = pd.Timedelta(f'{start_time} {unit_of_time}')
             time_index = pd.timedelta_range(
                 start=start_time_td_format,
@@ -1343,7 +1354,27 @@ class MultivariateTimeSeries(TimeSeriesMixin):
             self.data.set_index(time_index, inplace=True)
 
         return self.data
+    
+    def avg_down_sample(self, unit_of_time: int, time_value: int, categorical_cols_name: list):
+        """Decrease the dataset by avg, sum, etc the rows that are "similar". For ex with Wesad dataset, the data is sampled at 700 Hz, so there are 700 rows per 1 sec. Down sample by 1 sec will merge the rows by whatever method we decide.
+        """
 
+        if unit_of_time in self.VALID_TIMEDELTA_UNITS:
+            ds_by = f"{time_value}{unit_of_time}"
+            col_names = self.data.columns.to_list() # Get all the columns
+            self.data.set_index(self.data.index, inplace=True) # Set timestamp as index for resampling
+            categorical_data = self.data.loc[:, categorical_cols_name] # Separate the categorical column
+            df_numerical = self.data.drop(columns=categorical_cols_name) # Drop the categorical column from the DataFrame
+            df_numerical_resampled = df_numerical.resample(ds_by).mean() # Resample the numerical columns to 1 Hz
+            categorical_data_resampled = categorical_data.resample(ds_by).ffill()  # Resample the categorical column by forward filling
+            df = pd.concat([df_numerical_resampled, categorical_data_resampled], axis=1)  # Combine the resampled numerical and categorical data
+
+            return MultivariateTimeSeries (
+                time_col=f"Time ({unit_of_time})",
+                time_values=df.index.values,
+                values_cols=col_names,
+                values=df.values
+            )
 
 if __name__ == "__main__":
     uts = TimeSeriesFactory.create_time_series(
