@@ -190,20 +190,9 @@ def build_wesad_mts() -> MultivariateTimeSeries:
 
     chest_df.drop(['Unnamed: 0'], axis=1, inplace=True)
     chest_col_names = chest_df.columns.to_list()
-    
+
     wrist_df.drop(['Unnamed: 0'], axis=1, inplace=True)
     wrist_col_names = wrist_df.columns.to_list()
-    
-    # chest_col_values = []
-    # for chest_col_name in chest_col_names:
-    #     values = chest_df[chest_col_name].values
-    #     chest_col_values.append(values)
-    # mvts = TimeSeriesFactory.create_time_series(
-    #     time_col="date",
-    #     time_values=["2020-01-01", "2020-01-02"],
-    #     values_cols=["value1", "value2", "value3"],
-    #     values=[[1, 2], [3, 4], [5, 6]]
-    # )
 
     return [
         MultivariateTimeSeries
