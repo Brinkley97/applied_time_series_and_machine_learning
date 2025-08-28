@@ -8,11 +8,13 @@ from __future__ import annotations # must occur at the beginning of the file
 import torch
 import numpy as np
 import pandas as pd
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 from abc import ABC, abstractmethod
 # test for stationarity
+from scipy.signal import butter, lfilter
 from statsmodels.tsa.stattools import adfuller, bds
 from sklearn.model_selection import train_test_split
 
@@ -343,7 +345,6 @@ class TimeSeriesMixin(ABC):
             columns = ", ".join([str(col) for col in self.data.columns])
         return f"{self.__name__}({columns})"
 
-
     def __repr__(self):
         return str(self)
 
@@ -363,8 +364,8 @@ class TimeSeriesMixin(ABC):
 
         Parameters
         ----------
-        time_series: `np.array`
-            The time series
+        forecasting_step : int
+            How far out to get datat
 
         Returns
         -------
@@ -372,6 +373,73 @@ class TimeSeriesMixin(ABC):
         """
 
         return self.data[-forecasting_step:]
+    
+    def bandpass_filter(self, lower_range: int, upper_range: int, fs, order, filter_type: str = 'Butterworth'):
+        """
+        Apply a bandpass filter to the input data.
+    
+        Parameters
+        ----------
+        lower_range : float
+            The lower cutoff frequency of the bandpass filter.
+        upper_range : float
+            The upper cutoff frequency of the bandpass filter.
+        fs : float
+            The sampling frequency of the signal. 
+            See update_with_sampling_rate() and avg_down_sample() for explanations.
+        order : int, optional
+            The order of the filter (default is 5).
+        filter_type : str, optional
+            The type of filter to apply (default is 'Butterworth'). 
+            Supported types are 'Butterworth', 'Chebyshev1', 'Chebyshev2', and 'Bessel'.
+        
+        Returns
+        -------
+        y : array_like
+            The filtered signal data.
+        
+        Raises
+        ------
+        ValueError
+            If an improper filter type is selected.
+
+        Notes
+        -----
+        Filter in general takes in some data, perform some manipulations, then output the data.
+        Butterworth filter specificially magnifies data within range and excludes data NOT in range
+            as it's considered noise.
+        
+        """
+        filter_type = filter_type.lower()
+        
+        if filter_type == 'butterworth':
+            nyquist = 0.5 * fs
+            low = lower_range / nyquist
+            high = upper_range / nyquist
+            b, a = butter(order, [low, high], btype='band')
+            y = lfilter(b, a, self.data)
+            return y
+        
+            # return type(self)(
+            #     time_col=self.data.index.name,
+            #     time_values=self.data.index.tolist(),
+            #     values_cols=f"{self.data.columns} x Bandpass Filter ({filter_type})",
+            #     values=y
+            #     )
+        elif filter_type == 'chebyshev1':
+            # Placeholder for Chebyshev Type I filter
+            pass
+        elif filter_type == 'chebyshev2':
+            # Placeholder for Chebyshev Type II filter
+            pass
+        elif filter_type == 'bessel':
+            # Placeholder for Bessel filter
+            pass
+        else:
+            raise ValueError("Improper filter type selection. Choose from: Butterworth, Chebyshev1, Chebyshev2, Bessel")
+
+
+
 
 class UnivariateTimeSeries(TimeSeriesMixin):
 
