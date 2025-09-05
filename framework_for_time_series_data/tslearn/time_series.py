@@ -1312,8 +1312,10 @@ class UnivariateTimeSeries(TimeSeriesMixin):
             The peaks in the TS
 
         Notes
+        -----
         Some of these are used for ecg health data
         Follow: https://www.samproell.io/posts/signal/ecg-library-comparison/#benchmark-results
+        Update to plot peaks
         """
         ts = self.values.flatten()
 
