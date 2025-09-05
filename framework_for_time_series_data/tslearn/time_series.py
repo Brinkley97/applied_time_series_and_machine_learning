@@ -384,7 +384,7 @@ class TimeSeriesMixin(ABC):
                         upper_range: int, 
                         sampling_rate: float,
                         order: int,
-                        filter_type: str = 'Butterworth'):
+                        filter_type: str = 'Butterworth') -> UnivariateTimeSeries:
         """
         Apply a bandpass filter to the input data.
     
@@ -405,7 +405,7 @@ class TimeSeriesMixin(ABC):
         
         Returns
         -------
-        y : array_like
+        UnivariateTimeSeries
             The filtered signal data.
         
         Raises
@@ -1295,16 +1295,33 @@ class UnivariateTimeSeries(TimeSeriesMixin):
 
         return normalized_uts
 
-    def detect_peak(self, detection_name: str, sampling_rate: int):
-        """Detect the apogee of a TS"""
-        
+    def detect_peak(self, detection_name: str, sampling_rate: float):
+        """Detect the apogee of a TS.
+
+        Parameters
+        ----------
+        detection_name: str
+            Select the detection name that relates to the type of peak detection algo we want to implement.
+        sampling_rate: float
+            The sampling frequency of the signal. 
+            See update_with_sampling_rate() and avg_down_sample() for explanations.
+
+        Return
+        ------
+        array/np.array()
+            The peaks in the TS
+
+        Notes
+        Some of these are used for ecg health data
+        Follow: https://www.samproell.io/posts/signal/ecg-library-comparison/#benchmark-results
+        """
         ts = self.values.flatten()
 
         if detection_name == 'wfdb':
             rpeaks = wfdb.processing.xqrs_detect(ts, fs=sampling_rate, verbose=False)
             return rpeaks
         elif detection_name == 'sleepecg':
-            # rpeaks = sleepecg.detect_heartbeats(ts, fs=sampling_rate)
+            # rpeaks = sleepecg.detect_heartbeats(self.values, fs=sampling_rate)
             # return rpeaks
             pass
         elif detection_name == 'neurokit':

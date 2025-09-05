@@ -665,11 +665,25 @@ wheels = [
 ]
 
 [[package]]
+name = "matplotx"
+version = "0.3.10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c3/01/0e6938bb717fa7722d6d81336c62de71b815ce73e382aa1873a1e68ccc93/matplotx-0.3.10.tar.gz", hash = "sha256:b6926ce5274cf5da966cb46b90a8c7fefb761478c6c85c8f7ed3ee8ec90e86e5", size = 24041, upload_time = "2022-08-22T14:22:56.374Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/95/ef/e8a30503ae0c26681a9610c7f0be58646bea8119b98cc65c47661abc27a3/matplotx-0.3.10-py3-none-any.whl", hash = "sha256:4d7adafdb001c771d66d9362bb8ca99fcaed15319259223a714f36793dfabbb8", size = 25099, upload_time = "2022-08-22T14:22:54.733Z" },
+]
+
+[[package]]
 name = "misc"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "matplotx" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "scikit-learn" },
@@ -683,6 +697,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.6" },
+    { name = "matplotx", specifier = ">=0.3.10" },
     { name = "numpy", specifier = ">=2.3.2" },
     { name = "pandas", specifier = ">=2.3.2" },
     { name = "scikit-learn", specifier = ">=1.7.1" },

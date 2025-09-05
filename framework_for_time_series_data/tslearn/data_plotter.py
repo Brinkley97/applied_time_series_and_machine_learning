@@ -337,9 +337,53 @@ class PlotFactory:
             return ExtrapolatePlotter(kwargs['test_data_df'], kwargs['predictions'], kwargs.get('train_data_df'), kwargs.get('per_element', True))
         elif plot_type == 'loss_curve':
             return LossCurvePlotter(PlotData(**kwargs))
+        # elif plot_type == 'peaks':
+        #                return ExtrapolatePlotter(kwargs['test_data_df'], kwargs['predictions'], kwargs.get('train_data_df'), kwargs.get('per_element', True)) 
         else:
             raise ValueError(f"Unknown plot type: {plot_type}")
 
+    def plot_peaks(base_ts, 
+                   peaks: dict,
+                   detection_name: str, 
+                   sampling_rate: float,
+                   data_units_xaxis: str,
+                   data_units_yaxis: str,
+                   data_name: str = 'ECG',
+                   ):
+        """Detect the apogee of a TS.
+
+        Parameters
+        ----------
+        detection_name: str
+            Select the detection name that relates to the type of peak detection algo we want to implement.
+        sampling_rate: float
+            The sampling frequency of the signal. 
+            See update_with_sampling_rate() and avg_down_sample() for explanations.
+
+        Return
+        ------
+        array/np.array()
+            The peaks in the TS
+
+        Notes
+        Some of these are used for ecg health data
+        Follow: https://www.samproell.io/posts/signal/ecg-library-comparison/#benchmark-results
+        """
+        # ts = self.values.flatten()
+        import wfdb  # pip install wfdb
+
+        # less fancy: plt.plot(ecg_signal); plt.plot(rpeaks, ecg_signal[rpeaks], "x")
+        wfdb.plot_items(
+            base_ts.values,
+            [peaks[detection_name]],
+            fs=sampling_rate,
+            sig_name=[data_name],
+            sig_units=[data_units_yaxis],
+            time_units=data_units_xaxis,
+            return_fig=True,
+            ann_style="o",
+        )
+        
 class LossCurvePlotter:
     def __init__(self, plot_data: PlotData):
         """
@@ -366,4 +410,6 @@ class LossCurvePlotter:
         plt.ylabel("Loss")
         plt.legend()
         plt.show()
+
+
 
