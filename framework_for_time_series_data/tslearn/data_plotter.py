@@ -340,13 +340,65 @@ class PlotFactory:
         else:
             raise ValueError(f"Unknown plot type: {plot_type}")
 
+    def plot_bandpass(base_ts, 
+                      limit: int,
+                      data_units_xaxis,
+                      data_units_yaxis,
+                      pre_or_post: str,
+                      data_name: str = 'ECG'
+                      ):
+        """Plot the peaks.
+
+        Parameters
+        ---------- 
+        base_ts: str
+            The uts/mts before/after bandpass.
+            If before, same uts/mts passed in bandpass_filter method
+            If after, get the uts/mts returned from the bandpass_filter method
+        limit: int
+            At most to plot to reduce data
+        data_units_xaxis: str
+            What to name x-axis
+        data_units_yaxis: str
+            What to name y-axis
+        pre_or_post:
+            See base_ts to determine if this is before/after bandpass.
+        data_name: str
+            What type of data
+        
+        Return
+        ------
+        None
+            Only/Go ahead show plots
+
+        Notes
+        -----
+        See time_series.py | UnivariateTimeSeries | bandpass_filter()
+        See time_series.py | UnivariateTimeSeries | detect_peak()
+            For ECG data, after bandpass_filter(), call detect_peak()
+        """
+        ts = base_ts.get_as_df().to_numpy()
+
+        plt.figure(figsize=(10, 5))
+        plt.subplot(2, 1, 1)
+        if limit:
+            plt.plot(ts[:limit], label=f'{data_name} {pre_or_post} Bandpass')
+        else:
+            plt.plot(ts, label=f'{data_name} {pre_or_post} Bandpass')  
+        plt.title('Bandpass Filter')
+        plt.xlabel(data_units_xaxis)
+        plt.ylabel(data_units_yaxis)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
     def plot_peaks(base_ts, 
                    peaks: dict,
                    detection_name: str, 
                    sampling_rate: float,
                    data_units_xaxis: str,
                    data_units_yaxis: str,
-                   data_name: str = 'ECG',
+                   data_name: str = 'ECG'
                    ):
         """Plot the peaks.
 
@@ -377,6 +429,8 @@ class PlotFactory:
         Notes
         -----
         See time_series.py | UnivariateTimeSeries | detect_peak()
+        See time_series.py | UnivariateTimeSeries | bandpass_filter()
+            Can run bandpass_filter() before detect_peak()
         Some of these are used for ecg health data
         Follow: https://www.samproell.io/posts/signal/ecg-library-comparison/#benchmark-results
         """
