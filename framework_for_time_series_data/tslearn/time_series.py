@@ -6,8 +6,13 @@ Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/
 
 from __future__ import annotations # must occur at the beginning of the file
 import torch
+import sleepecg
+import neurokit2
+
 import numpy as np
 import pandas as pd
+
+import wfdb.processing
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -374,7 +379,12 @@ class TimeSeriesMixin(ABC):
 
         return self.data[-forecasting_step:]
     
-    def bandpass_filter(self, lower_range: int, upper_range: int, fs, order, filter_type: str = 'Butterworth'):
+    def bandpass_filter(self, 
+                        lower_range: int,
+                        upper_range: int, 
+                        sampling_rate: float,
+                        order: int,
+                        filter_type: str = 'Butterworth'):
         """
         Apply a bandpass filter to the input data.
     
@@ -384,7 +394,7 @@ class TimeSeriesMixin(ABC):
             The lower cutoff frequency of the bandpass filter.
         upper_range : float
             The upper cutoff frequency of the bandpass filter.
-        fs : float
+        sampling_rate : float
             The sampling frequency of the signal. 
             See update_with_sampling_rate() and avg_down_sample() for explanations.
         order : int, optional
@@ -411,21 +421,21 @@ class TimeSeriesMixin(ABC):
         
         """
         filter_type = filter_type.lower()
+        col_names = self.get_as_df().columns.to_list()
         
         if filter_type == 'butterworth':
-            nyquist = 0.5 * fs
+            nyquist = 0.5 * sampling_rate
             low = lower_range / nyquist
             high = upper_range / nyquist
             b, a = butter(order, [low, high], btype='band')
             y = lfilter(b, a, self.data)
-            return y
-        
-            # return type(self)(
-            #     time_col=self.data.index.name,
-            #     time_values=self.data.index.tolist(),
-            #     values_cols=f"{self.data.columns} x Bandpass Filter ({filter_type})",
-            #     values=y
-            #     )
+
+            return type(self)(
+                time_col=self.data.index.name,
+                time_values=self.data.index.tolist(),
+                values_cols=col_names,
+                values=y
+            )
         elif filter_type == 'chebyshev1':
             # Placeholder for Chebyshev Type I filter
             pass
@@ -437,8 +447,6 @@ class TimeSeriesMixin(ABC):
             pass
         else:
             raise ValueError("Improper filter type selection. Choose from: Butterworth, Chebyshev1, Chebyshev2, Bessel")
-
-
 
 
 class UnivariateTimeSeries(TimeSeriesMixin):
@@ -1286,6 +1294,41 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         )
 
         return normalized_uts
+
+    def detect_peak(self, detection_name: str, sampling_rate: int):
+        """Detect the apogee of a TS"""
+        
+        ts = self.values.flatten()
+
+        if detection_name == 'wfdb':
+            rpeaks = wfdb.processing.xqrs_detect(ts, fs=sampling_rate, verbose=False)
+            return rpeaks
+        elif detection_name == 'sleepecg':
+            # rpeaks = sleepecg.detect_heartbeats(ts, fs=sampling_rate)
+            # return rpeaks
+            pass
+        elif detection_name == 'neurokit':
+            _, results = neurokit2.ecg_peaks(ts, sampling_rate=sampling_rate)
+            rpeaks = results["ECG_R_Peaks"]
+            return rpeaks
+        elif detection_name == 'all':
+            all_peaks = {}
+
+            print("### wfdb ###")
+            wfdb_peaks = self.detect_peak('wfdb', sampling_rate)
+            all_peaks['wfdb_peaks'] = wfdb_peaks
+
+            print("### sleepecg ###")
+            sleepecg_peaks = self.detect_peak('sleepecg', sampling_rate)
+            all_peaks['sleepecg_peaks'] = sleepecg_peaks
+
+            print("### neurokit ###")
+            neurokit_peaks = self.detect_peak('neurokit', sampling_rate)
+            all_peaks['neurokit_peaks'] = neurokit_peaks
+            
+            return all_peaks
+        else:
+            return f'404: Wrong detection_name: {detection_name}. Choose from (1) wfdb, (2) sleepecg, or (3) neurokit, (4) all'
 
 class MultivariateTimeSeries(TimeSeriesMixin):
     __name__ = "MultivariateTimeSeries"
