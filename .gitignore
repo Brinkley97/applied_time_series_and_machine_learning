@@ -44,3 +44,6 @@ db.sqlite3
 /tslearn_app/blog/migrations
 .vscode/settings.json
 *.sqlite3
+/misc/datasets/WESAD
+*.png
+.DS_Store
