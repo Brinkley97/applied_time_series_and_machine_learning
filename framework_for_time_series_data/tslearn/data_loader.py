@@ -1,3 +1,4 @@
+# tslearn/data_loader.py
 """
 Detravious Jamari Brinkley (aka FitToCode)
 
@@ -11,7 +12,8 @@ import pandas as pd
 import yfinance as yf
 import statsmodels.api as sm
 
-from time_series import UnivariateTimeSeries, MultivariateTimeSeries
+# from time_series import UnivariateTimeSeries, MultivariateTimeSeries
+from .time_series import UnivariateTimeSeries, MultivariateTimeSeries # django
 
 def build_airline_passenger_uts() -> UnivariateTimeSeries:
     # Get air passenger data and build our UTS
@@ -37,7 +39,21 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
 
     end_date: `str`
         The last date we want. This is exclusive (ie: I want 2023-06-21 in my data, I must set this param to 2023-06-22).
+        
+    Notes
+    -----
+    Common error:
+        TypeError: "Index(...) must be called with a collection of some kind, 'Close' was passed"
 
+    Cause:
+        Pandas `DataFrame(..., columns=...)` expects `columns` to be list-like. If a single column
+        name is passed as a string (e.g., `"Close"`), it is treated as a scalar and Pandas raises
+        this error.
+
+    Solution:
+        Always pass a list for `values_cols` when constructing `UnivariateTimeSeries`, e.g.
+        `values_cols=[independent_variable]` instead of `values_cols=independent_variable`.
+    
     Returns
     -------
     `UnivariateTimeSeries`
@@ -50,7 +66,7 @@ def build_stock_uts(stock_symbol: str, stock_name: str, independent_variable: st
     return UnivariateTimeSeries(
         time_col="Date",
         time_values=stock_df.index,
-        values_cols=independent_variable,
+        values_cols=[independent_variable],
         values=stock_df[independent_variable].values
     )
 

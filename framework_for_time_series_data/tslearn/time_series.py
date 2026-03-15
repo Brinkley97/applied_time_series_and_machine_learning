@@ -6,6 +6,12 @@ Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/
 
 from __future__ import annotations # must occur at the beginning of the file
 import torch
+<<<<<<< Updated upstream
+=======
+# import sleepecg
+# import neurokit2
+
+>>>>>>> Stashed changes
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -20,7 +26,7 @@ from sklearn.model_selection import train_test_split
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
 
-from constants import Number, TimeSeriesData
+from .constants import Number, TimeSeriesData
 from typing import List, Tuple, Union, Any, TypedDict
 
 TimeSeries = Union["UnivariateTimeSeries", "MultivariateTimeSeries"]
@@ -179,79 +185,60 @@ class TimeSeriesMixin(ABC):
 
         return col_names, col_values, df
 
-    def get_statistics(self, time_type: str, type_of_data: str) -> pd.DataFrame:
-        """Get the statistics of the univariate time series data.
-
-        Parameters:
-        -----------
-        time_type: str
-            A parameter to replace the "count" row in the statistics dataframe.
-            Also in doc string, add that time_type can be
-
-        Returns:
-        --------
-        stats: `pd.DataFrame`
-            The statistics of the univariate time series data
+    def get_statistics(self, time_type: str, type_of_data: str) -> dict:
         """
-        stats = self.data.describe().round(2) # Original data
+        Get summary statistics for a univariate time series.
 
-        # Rename count column to total days, weeks, etc
-        count_value = int(stats.loc['count'])
+        Returns
+        -------
+        dict
+            Keys are human-readable stat names; values are scalars (numbers/strings/timestamps).
+            This is template-friendly for Django and also easy to use in notebooks.
+        """
+        s = self.data
+        if isinstance(s, pd.DataFrame):
+            s = s[s.columns[0]]  # use the first (and typically only) column
+
+        desc = s.describe().round(2)
+
         total_time_type = f"total {time_type}"
-        stats.loc[total_time_type] = count_value
-        stats = stats.drop(index='count')
 
-
-        # Dictionary for renaming stock data statistics
-        rename_dict = {
-            'min': f'lowest {type_of_data}',
-            'max': f'highest {type_of_data}',
-            'mean': f'average {type_of_data}',
-            'std': f'{type_of_data} volatility',
-            '25%': f'25th percentile {type_of_data}',
-            '50%': f'median {type_of_data}',
-            '75%': f'75th percentile {type_of_data}'
+        stats = {
+            total_time_type: int(desc.loc["count"]),
+            f"lowest {type_of_data}": float(desc.loc["min"]),
+            f"highest {type_of_data}": float(desc.loc["max"]),
+            f"average {type_of_data}": float(desc.loc["mean"]),
+            f"{type_of_data} volatility": float(desc.loc["std"]) if pd.notna(desc.loc["std"]) else None,
+            f"25th percentile {type_of_data}": float(desc.loc["25%"]),
+            f"median {type_of_data}": float(desc.loc["50%"]),
+            f"75th percentile {type_of_data}": float(desc.loc["75%"]),
         }
-        
-        # Rename statistics
-        stats = self.rename_statistics(stats, rename_dict)
-        
-        # Update additional statistics
+
+        # extra stats from your existing method
         additional_stats = self.range_skewness_kurtosis()
-        for key, value in additional_stats.items():
-            stats.loc[key] = value
+        stats.update(additional_stats)
 
-        # Add dates for max and min values
-        max_dates = self.data.idxmax()
-        min_dates = self.data.idxmin()
-        stats.loc['most recent date'] = max_dates
-        stats.loc['inception date'] = min_dates
+        # dates for max/min
+        stats["most recent date"] = s.idxmax()
+        stats["inception date"] = s.idxmin()
 
-
-        # Reorder the rows explicitly
-        ordered_stats = [
-            total_time_type, 
-            'most recent date', 
-            'inception date', 
-            f'lowest {type_of_data}', 
-            f'highest {type_of_data}', 
-            f'average {type_of_data}', 
-            'range',
-            f'{type_of_data} volatility', 
-            f'25th percentile {type_of_data}', 
-            f'median {type_of_data}', 
-            f'75th percentile {type_of_data}', 
-            'skewness', 
-            'kurtosis'
+        # optional: consistent ordering (Python 3.7+ preserves dict insertion order)
+        ordered_keys = [
+            total_time_type,
+            "most recent date",
+            "inception date",
+            f"lowest {type_of_data}",
+            f"highest {type_of_data}",
+            f"average {type_of_data}",
+            "range",
+            f"{type_of_data} volatility",
+            f"25th percentile {type_of_data}",
+            f"median {type_of_data}",
+            f"75th percentile {type_of_data}",
+            "skewness",
+            "kurtosis",
         ]
-        
-        # Ensure that all ordered statistics are present in the DataFrame
-        for stat in ordered_stats:
-            if stat not in stats.index:
-                stats.loc[stat] = pd.NA  # Add missing stats with NaN value
-
-        # Reorder the statistics DataFrame
-        stats = stats.reindex(ordered_stats)
+        stats = {k: stats.get(k, None) for k in ordered_keys}
 
         return stats
 
