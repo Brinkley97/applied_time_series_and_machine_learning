@@ -6,12 +6,6 @@ Factory Pattern: https://refactoring.guru/design-patterns/factory-method/python/
 
 from __future__ import annotations # must occur at the beginning of the file
 import torch
-<<<<<<< Updated upstream
-=======
-# import sleepecg
-# import neurokit2
-
->>>>>>> Stashed changes
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -26,8 +20,8 @@ from sklearn.model_selection import train_test_split
 # partial autocorrelation
 from statsmodels.graphics import tsaplots
 
-from .constants import Number, TimeSeriesData
 from typing import List, Tuple, Union, Any, TypedDict
+from .constants import Number, TimeSeriesData # django
 
 TimeSeries = Union["UnivariateTimeSeries", "MultivariateTimeSeries"]
 
@@ -509,42 +503,45 @@ class UnivariateTimeSeries(TimeSeriesMixin):
         plt.close(fig)
         return fig
 
-    def stationarity_test(self, series):
-        """Determine if the mean and variance of the time series is stationary, nonstationary, weak stationary, strong stationary.
+    
+    def stationarity_test(self, series) -> dict:
+        """Determine if the time series is stationary using the ADF test.
 
-        Null hypothesis: data has a unit root (data is non-stationary)
+        Null hypothesis: data has a unit root (non-stationary)
         Alt hypothesis: data is stationary
+        Reject null if p-value < 0.05 → stationary
 
-        If we reject the Null, then the data is stationary.
-        In order to reject the null, we need our p-value to be less than our stat. sig. level
-
-        In order to use most models inclusing machine learning models, the data must be stationary.
-
-        Parameters
-        ----------
-        series: `list` or `pd.DataFrame`
-            The list of observations
-`
+        Returns
+        -------
+        dict
+            Human-readable results, safe to pass directly into a Django template context.
         """
-        if type(series) == pd.DataFrame:
+        if isinstance(series, pd.DataFrame):
             series = self.get_series(False)
 
-        adfuller_result = adfuller(series)
-        adfuller_p_value = adfuller_result[1]
+        result = adfuller(series)
+        adf_stat = round(float(result[0]), 4)
+        p_value = round(float(result[1]), 4)
         significance_level = 0.05
+        is_stationary = p_value < significance_level
 
-        if adfuller_p_value < significance_level:
-            print('ADF Statistic: %f' % adfuller_result[0])
-            print('p-value: %f' % adfuller_result[1], '<', significance_level, ', so reject null-hypothesis as the TS is stationary')
-            print('Critical Values:' )
-            for key, value in adfuller_result[4].items():
-                print('\t%s: %.3f' % (key, value))
-        else:
-            print('ADF Statistic: %f' % adfuller_result[0])
-            print('p-value: %f' % adfuller_result[1], '>', significance_level, ', so accept the null-hypothesis as the TS is non-stationary')
-            print('Critical Values:' )
-            for key, value in adfuller_result[4].items():
-                print('\t%s: %.3f' % (key, value))
+        output = {
+            "ADF Statistic": adf_stat,
+            "p-value": p_value,
+            "Significance Level": significance_level,
+            "Result": "Stationary ✅" if is_stationary else "Non-Stationary ❌",
+            "Interpretation": (
+                "Reject null hypothesis: the time series IS stationary."
+                if is_stationary
+                else "Accept null hypothesis: the time series is NOT stationary."
+            ),
+        }
+
+        # Add critical values
+        for key, value in result[4].items():
+            output[f"Critical Value ({key})"] = round(float(value), 4)
+
+        return output
 
     def independence_test(self, series):
         """Using the BDS test (after the initials of W. A. Brock, W. Dechert and J. Scheinkman), detect non-linear serial dependence in the TS by testing the null hypothesis that the remaining residuals are independent and identically distributed (i.i.d.).
